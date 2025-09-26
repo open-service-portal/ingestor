@@ -22,8 +22,8 @@
     ]
   },
   "bin": {
-    "ingestor": "./bin/ingestor",
-    "backstage-export": "./bin/backstage-export"
+    "backstage-export": "./bin/backstage-export",
+    "ingestor": "./bin/ingestor"
   },
   "scripts": {
     "start": "backstage-cli package start",
