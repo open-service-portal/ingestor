@@ -21,14 +21,21 @@
       "@open-service-portal/backstage-plugin-ingestor"
     ]
   },
+  "bin": {
+    "ingestor": "./bin/ingestor",
+    "backstage-export": "./bin/backstage-export"
+  },
   "scripts": {
     "start": "backstage-cli package start",
     "build": "backstage-cli package build",
+    "build:cli": "tsc --project tsconfig.cli.json",
     "lint": "backstage-cli package lint",
     "test": "backstage-cli package test",
     "clean": "backstage-cli package clean",
     "prepack": "backstage-cli package prepack",
-    "postpack": "backstage-cli package postpack"
+    "postpack": "backstage-cli package postpack",
+    "cli:ingestor": "ts-node src/cli/ingestor-cli.ts",
+    "cli:export": "ts-node src/cli/backstage-export-cli.ts"
   },
   "dependencies": {
     "@backstage/backend-defaults": "^0.12.0",
@@ -44,7 +51,9 @@
     "@backstage/plugin-kubernetes-node": "^0.3.3",
     "@backstage/plugin-permission-common": "^0.9.1",
     "@backstage/plugin-signals-node": "^0.1.23",
+    "@kubernetes/client-node": "^0.21.0",
     "@types/pluralize": "^0.0.33",
+    "commander": "^11.1.0",
     "express": "^4.17.1",
     "express-promise-router": "^4.1.1",
     "js-yaml": "^4.1.0",
@@ -57,12 +66,16 @@
     "@backstage/plugin-auth-backend": "^0.25.3",
     "@backstage/plugin-auth-backend-module-guest-provider": "^0.2.11",
     "@types/express": "*",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.0.0",
     "@types/supertest": "^2.0.12",
     "msw": "^2.3.1",
     "supertest": "^6.2.4",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ]
 }

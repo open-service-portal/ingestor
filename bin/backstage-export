@@ -1,0 +1,8 @@
+#!/usr/bin/env node
+
+/**
+ * Backstage Export CLI entry point
+ * This script delegates to the compiled JavaScript
+ */
+
+require('../dist/cli/backstage-export-cli');

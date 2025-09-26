@@ -14,6 +14,8 @@ Originally forked from [@terasky/backstage-plugin-kubernetes-ingestor](https://g
 - **Entity Metadata Enrichment**: Automatically adds relevant Kubernetes metadata to catalog entities
 - **XRD Template Generation**: Automatically generates Backstage templates for Crossplane XRDs
 - **GitOps Integration**: Support for PR-based template registration (GitHub/GitLab/Bitbucket)
+- **CLI Tools**: Command-line tools for ingestion and export operations
+- **Unified Architecture**: Same ingestion engine used by both CLI and runtime
 
 ## Installation
 
@@ -93,6 +95,109 @@ The plugin consists of several key components:
 
 For detailed architecture information, see [docs/architecture.md](./docs/architecture.md).
 
+## CLI Tools
+
+This plugin includes command-line tools for ingestion and export operations. The CLI uses the same ingestion engine as the runtime plugin, ensuring consistent behavior.
+
+### Ingestor CLI
+
+The ingestor CLI allows you to ingest Kubernetes resources from files or directories without running Backstage.
+
+```bash
+# Install globally
+npm install -g @open-service-portal/backstage-plugin-ingestor
+
+# Or use locally
+yarn cli:ingestor --help
+```
+
+#### Usage
+
+```bash
+# Ingest from a single file
+ingestor xrd.yaml
+
+# Ingest from a directory
+ingestor ./resources
+
+# Ingest from stdin
+cat xrd.yaml | ingestor -
+
+# Preview what would be generated
+ingestor xrd.yaml --preview
+
+# Validate resources only
+ingestor xrd.yaml --validate
+
+# Customize output
+ingestor xrd.yaml --output ./catalog --format json --owner platform-team
+```
+
+#### Options
+
+- `-o, --output <dir>` - Output directory (default: ./catalog-entities)
+- `-f, --format <format>` - Output format: yaml or json (default: yaml)
+- `--owner <owner>` - Set entity owner
+- `--namespace <namespace>` - Set entity namespace
+- `--tags <tags>` - Add tags (comma-separated)
+- `-v, --validate` - Validate resources without ingesting
+- `-p, --preview` - Preview what would be generated
+- `--strict` - Fail on validation warnings
+- `--quiet` - Suppress non-error output
+- `--verbose` - Show detailed information
+
+### Export CLI
+
+The export CLI extracts entities from a running Backstage catalog for backup, migration, or auditing.
+
+```bash
+# Install globally
+npm install -g @open-service-portal/backstage-plugin-ingestor
+
+# Or use locally
+yarn cli:export --help
+```
+
+#### Usage
+
+```bash
+# Export all templates
+backstage-export --kind Template
+
+# Export with filters
+backstage-export --kind Template --tags crossplane --output ./templates
+
+# Export from specific Backstage instance
+backstage-export --url https://backstage.example.com --token $TOKEN
+
+# Preview export
+backstage-export --preview --kind Template,API
+
+# List all APIs
+backstage-export --list --kind API
+
+# Export with manifest
+backstage-export --kind Template --manifest --organize
+```
+
+#### Options
+
+- `-u, --url <url>` - Backstage URL (default: http://localhost:7007)
+- `-t, --token <token>` - API token (or use BACKSTAGE_TOKEN env)
+- `-k, --kind <kinds>` - Entity kinds (comma-separated)
+- `-n, --namespace <namespace>` - Namespace filter
+- `--name <pattern>` - Name pattern (supports wildcards)
+- `--owner <owner>` - Owner filter
+- `--tags <tags>` - Tags filter (comma-separated)
+- `-o, --output <dir>` - Output directory (default: ./exported)
+- `-f, --format <format>` - Output format: yaml or json (default: yaml)
+- `--organize` - Organize output by entity type
+- `--manifest` - Generate export manifest file
+- `-p, --preview` - Preview what would be exported
+- `-l, --list` - List matching entities only
+- `--quiet` - Suppress non-error output
+- `--verbose` - Show detailed information
+
 ## Development
 
 ### Prerequisites
@@ -111,11 +216,24 @@ yarn install
 # Build the plugin
 yarn build
 
+# Build CLI tools
+yarn build:cli
+
 # Run tests
 yarn test
 
 # Start in development mode
 yarn start
+```
+
+### Testing CLI Tools
+
+```bash
+# Test ingestor CLI locally
+yarn cli:ingestor examples/xrd.yaml --preview
+
+# Test export CLI locally
+yarn cli:export --list --kind Template
 ```
 
 ### Testing with Local Backstage
