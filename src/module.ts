@@ -8,7 +8,7 @@ import {
 import { KubernetesEntityProvider, XRDTemplateEntityProvider } from './providers';
 import { DefaultKubernetesResourceFetcher } from './services';
 
-export const catalogModuleKubernetesIngestor = createBackendModule({
+export const catalogModuleIngestor = createBackendModule({
   pluginId: 'catalog',
   moduleId: 'ingestor',
   register(reg) {
