@@ -16,6 +16,7 @@ Originally forked from [@terasky/backstage-plugin-kubernetes-ingestor](https://g
 - **GitOps Integration**: Support for PR-based template registration (GitHub/GitLab/Bitbucket)
 - **CLI Tools**: Command-line tools for ingestion and export operations
 - **Unified Architecture**: Same ingestion engine used by both CLI and runtime
+- **XR Status Links**: Automatic extraction and generation of links from Kubernetes resource status fields
 
 ## Installation
 
@@ -36,37 +37,42 @@ Add the plugin to your backend:
 yarn add --cwd packages/backend @open-service-portal/backstage-plugin-ingestor
 ```
 
-## Configuration
+## Quick Start
 
-Add the ingestor configuration to your `app-config.yaml`:
+### Basic Configuration
+
+Add to your `app-config.yaml`:
 
 ```yaml
-catalog:
-  providers:
-    kubernetes:
+kubernetesIngestor:
+  components:
+    enabled: true
+    excludedNamespaces:
+      - kube-system
+      - kube-public
+  crossplane:
+    enabled: true
+    xrds:
       enabled: true
-      schedule:
-        frequency: { minutes: 5 }
-        timeout: { minutes: 2 }
-      clusters:
-        - name: production
-          authProvider: serviceAccount
-          skipTLSVerify: false
-          namespaces:
-            include: ['default', 'production-*']
-            exclude: ['kube-system', 'kube-public']
-
-    crossplane:
-      enabled: true
-      schedule:
-        frequency: { minutes: 10 }
-      clusters:
-        - name: production
-          templateGeneration:
-            enabled: true
-            gitProvider: github
-            repository: open-service-portal/catalog-orders
 ```
+
+**[→ Full Configuration Reference](./docs/configuration.md)**
+
+## Documentation
+
+### For Users
+
+- **[Configuration Reference](./docs/configuration.md)** - All configuration options with examples
+- **[XR Status Links](./docs/xr-status-links.md)** - Automatic link extraction from status fields
+- **[CLI: Ingestor](./docs/cli-ingestor.md)** - Process Kubernetes resources from files
+- **[CLI: Export](./docs/cli-export.md)** - Export entities from Backstage catalog
+
+### For Developers
+
+- **[Architecture Overview](./docs/architecture.md)** - System design and components
+- **[XRD Ingestion](./docs/XRD_INGESTION.md)** - How XRDs are transformed to templates
+- **[CLI Implementation](./docs/CLI-IMPLEMENTATION.md)** - CLI tools architecture
+- **[Testing Guide](./tests/README.md)** - Running and writing tests
 
 ## Backend Integration
 
@@ -95,108 +101,56 @@ The plugin consists of several key components:
 
 For detailed architecture information, see [docs/architecture.md](./docs/architecture.md).
 
+## Key Features Documentation
+
+### XR Status Links
+
+The ingestor automatically extracts and generates navigation links from Kubernetes resource status fields. This feature is particularly valuable for Crossplane XRs where compositions populate status with URLs, endpoints, and connection information.
+
+**[→ Full XR Status Links Documentation](./docs/xr-status-links.md)**
+
+- Supported status fields and formats
+- Implementation details and architecture
+- Configuration and customization
+- Examples and best practices
+
 ## CLI Tools
 
-This plugin includes command-line tools for ingestion and export operations. The CLI uses the same ingestion engine as the runtime plugin, ensuring consistent behavior.
+The plugin includes two command-line tools that use the same ingestion engine as the runtime plugin:
 
 ### Ingestor CLI
 
-The ingestor CLI allows you to ingest Kubernetes resources from files or directories without running Backstage.
+Process Kubernetes resources from files without running Backstage:
 
 ```bash
-# Install globally
-npm install -g @open-service-portal/backstage-plugin-ingestor
+# Process XRD file
+npx ts-node src/cli/ingestor-cli.ts xrd.yaml
 
-# Or use locally
-yarn cli:ingestor --help
+# Preview generated template
+npx ts-node src/cli/ingestor-cli.ts xrd.yaml --preview
+
+# Process with custom tags
+npx ts-node src/cli/ingestor-cli.ts xrd.yaml --tags "database,production"
 ```
 
-#### Usage
-
-```bash
-# Ingest from a single file
-ingestor xrd.yaml
-
-# Ingest from a directory
-ingestor ./resources
-
-# Ingest from stdin
-cat xrd.yaml | ingestor -
-
-# Preview what would be generated
-ingestor xrd.yaml --preview
-
-# Validate resources only
-ingestor xrd.yaml --validate
-
-# Customize output
-ingestor xrd.yaml --output ./catalog --format json --owner platform-team
-```
-
-#### Options
-
-- `-o, --output <dir>` - Output directory (default: ./catalog-entities)
-- `-f, --format <format>` - Output format: yaml or json (default: yaml)
-- `--owner <owner>` - Set entity owner
-- `--namespace <namespace>` - Set entity namespace
-- `--tags <tags>` - Add tags (comma-separated)
-- `-v, --validate` - Validate resources without ingesting
-- `-p, --preview` - Preview what would be generated
-- `--strict` - Fail on validation warnings
-- `--quiet` - Suppress non-error output
-- `--verbose` - Show detailed information
+**[→ Full Ingestor CLI Documentation](./docs/cli-ingestor.md)**
 
 ### Export CLI
 
-The export CLI extracts entities from a running Backstage catalog for backup, migration, or auditing.
-
-```bash
-# Install globally
-npm install -g @open-service-portal/backstage-plugin-ingestor
-
-# Or use locally
-yarn cli:export --help
-```
-
-#### Usage
+Extract entities from a running Backstage catalog:
 
 ```bash
 # Export all templates
-backstage-export --kind Template
+npx ts-node src/cli/backstage-export.ts --kind Template
 
-# Export with filters
-backstage-export --kind Template --tags crossplane --output ./templates
+# Export with filtering
+npx ts-node src/cli/backstage-export.ts --kind Component --owner platform-team
 
-# Export from specific Backstage instance
-backstage-export --url https://backstage.example.com --token $TOKEN
-
-# Preview export
-backstage-export --preview --kind Template,API
-
-# List all APIs
-backstage-export --list --kind API
-
-# Export with manifest
-backstage-export --kind Template --manifest --organize
+# Preview what would be exported
+npx ts-node src/cli/backstage-export.ts --kind Template --preview
 ```
 
-#### Options
-
-- `-u, --url <url>` - Backstage URL (default: http://localhost:7007)
-- `-t, --token <token>` - API token (or use BACKSTAGE_TOKEN env)
-- `-k, --kind <kinds>` - Entity kinds (comma-separated)
-- `-n, --namespace <namespace>` - Namespace filter
-- `--name <pattern>` - Name pattern (supports wildcards)
-- `--owner <owner>` - Owner filter
-- `--tags <tags>` - Tags filter (comma-separated)
-- `-o, --output <dir>` - Output directory (default: ./exported)
-- `-f, --format <format>` - Output format: yaml or json (default: yaml)
-- `--organize` - Organize output by entity type
-- `--manifest` - Generate export manifest file
-- `-p, --preview` - Preview what would be exported
-- `-l, --list` - List matching entities only
-- `--quiet` - Suppress non-error output
-- `--verbose` - Show detailed information
+**[→ Full Export CLI Documentation](./docs/cli-export.md)**
 
 ## Development
 
