@@ -16,7 +16,7 @@ import {
   IIngestionEngine,
   Resource,
   IngestionConfig,
-} from '../../core/engine/interfaces';
+} from '../../../core/engine/interfaces';
 
 export class RuntimeAdapter implements CatalogProcessor {
   private readonly engine: IIngestionEngine;

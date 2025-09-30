@@ -1,0 +1,44 @@
+{{!--
+  Simple Backstage Template - Minimal configuration
+--}}
+apiVersion: backstage.io/v1beta3
+kind: Template
+metadata:
+  name: {{slugify xrd.metadata.name}}
+  title: {{extractTitle xrd}}
+  description: Create {{xrd.spec.names.kind}}
+  tags:
+    - crossplane
+    - ingestor
+spec:
+  owner: platform-team
+  type: crossplane-resource
+
+  parameters:
+    - title: Configuration
+      properties:
+        name:
+          title: Name
+          type: string
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+{{#each (extractProperties xrd)}}
+{{#if @index}}{{#unless (gt @index 4)}}
+        {{name}}:
+          title: {{title}}
+          type: {{type}}
+{{/unless}}{{/if}}
+{{/each}}
+      required:
+        - name
+
+  steps:
+    - id: create
+      name: Create Resource
+      action: kubernetes:apply
+      input:
+        manifest: |
+          apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+          kind: {{xrd.spec.names.kind}}
+          metadata:
+            name: {{backstageVar "parameters.name"}}
+          spec: {{backstageVar "parameters"}}

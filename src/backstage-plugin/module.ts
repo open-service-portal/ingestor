@@ -5,7 +5,7 @@ import {
 import {
   catalogProcessingExtensionPoint,
 } from '@backstage/plugin-catalog-node/alpha';
-import { KubernetesEntityProvider, XRDTemplateEntityProvider } from './providers';
+import { KubernetesEntityProvider, XRDTemplateEntityProvider } from './entity-providers';
 import { DefaultKubernetesResourceFetcher } from './services';
 
 export const catalogModuleIngestor = createBackendModule({
@@ -81,3 +81,5 @@ export const catalogModuleIngestor = createBackendModule({
     });
   },
 });
+
+export const ingestorPlugin = catalogModuleIngestor;

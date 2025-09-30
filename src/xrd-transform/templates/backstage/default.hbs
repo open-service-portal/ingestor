@@ -1,0 +1,103 @@
+{{!--
+  Default Backstage Template
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - helpers: Utility functions
+  - source: Source of the XRD
+  - timestamp: When extracted
+--}}
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: {{slugify xrd.metadata.name}}
+  title: {{extractTitle xrd}}
+  description: {{#if xrd.metadata.annotations.["backstage.io/description"]}}{{xrd.metadata.annotations.["backstage.io/description"]}}{{else}}Create and manage {{xrd.spec.names.kind}} resources{{/if}}
+  tags:
+    - crossplane
+    - {{xrd.spec.group}}
+{{#if xrd.metadata.labels}}
+{{#each xrd.metadata.labels}}
+    - {{this}}
+{{/each}}
+{{/if}}
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    crossplane.io/xrd-name: {{xrd.metadata.name}}
+    crossplane.io/xrd-group: {{xrd.spec.group}}
+spec:
+  owner: {{#if (getAnnotation xrd "backstage.io/owner")}}{{getAnnotation xrd "backstage.io/owner"}}{{else}}platform-team{{/if}}
+  type: crossplane-resource
+
+  parameters:
+    - title: Basic Information
+      required:
+        - name
+        - namespace
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Name of the {{xrd.spec.names.kind}}
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+        namespace:
+          title: Namespace
+          type: string
+          description: Kubernetes namespace
+          default: default
+
+    - title: Resource Configuration
+      properties:
+{{#with (extractProperties xrd) as |props|}}
+{{#each props}}
+        {{name}}:
+          title: {{title}}
+          type: {{type}}
+{{#if description}}
+          description: {{description}}
+{{/if}}
+{{#if default}}
+          default: {{json default}}
+{{/if}}
+{{#if enum}}
+          enum: {{json enum}}
+{{/if}}
+{{#if pattern}}
+          pattern: {{pattern}}
+{{/if}}
+{{#if minimum}}
+          minimum: {{minimum}}
+{{/if}}
+{{#if maximum}}
+          maximum: {{maximum}}
+{{/if}}
+{{/each}}
+{{#if props}}
+      required:
+{{#each props}}
+{{#if required}}
+        - {{name}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{/with}}
+
+  steps:
+    - id: create-resource
+      name: Create {{xrd.spec.names.kind}}
+      action: kubernetes:apply
+      input:
+        manifest: |
+          apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+          kind: {{xrd.spec.names.kind}}
+          metadata:
+            name: {{backstageVar "parameters.name"}}
+            namespace: {{backstageVar "parameters.namespace"}}
+          spec: {{backstageVar "parameters"}}
+
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: {{backstageVar "steps.create-resource.output.repoContentsUrl"}}
+        catalogInfoPath: /catalog-info.yaml

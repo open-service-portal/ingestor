@@ -1,0 +1,87 @@
+{{!--
+  API Documentation Template
+  Generates API entity for XRD
+--}}
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: {{slugify xrd.metadata.name}}-api
+  title: {{extractTitle xrd}} API
+  description: API specification for {{xrd.spec.names.kind}}
+  tags:
+    - crossplane
+    - ingestor
+    - {{xrd.spec.group}}
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    crossplane.io/xrd-name: {{xrd.metadata.name}}
+spec:
+  type: openapi
+  lifecycle: {{xrd.spec.versions.[0].name}}
+  owner: platform-team
+  definition:
+    openapi: 3.0.0
+    info:
+      title: {{xrd.spec.names.kind}} API
+      version: {{xrd.spec.versions.[0].name}}
+      description: OpenAPI specification for {{xrd.spec.names.kind}}
+    paths:
+      /{{xrd.spec.names.plural}}:
+        get:
+          summary: List {{xrd.spec.names.plural}}
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create {{xrd.spec.names.kind}}
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: {{xrd.spec.names.kind}} configuration
+                      properties:
+{{#each (extractProperties xrd)}}
+                        {{name}}:
+                          type: {{type}}
+{{#if description}}
+                          description: {{description}}
+{{/if}}
+{{#if pattern}}
+                          pattern: {{pattern}}
+{{/if}}
+{{#if minimum}}
+                          minimum: {{minimum}}
+{{/if}}
+{{#if maximum}}
+                          maximum: {{maximum}}
+{{/if}}
+{{/each}}
+{{#with (extractProperties xrd) as |props|}}
+{{#each props}}
+{{#if required}}
+{{#if @first}}
+                      required:
+{{/if}}
+                        - {{name}}
+{{/if}}
+{{/each}}
+{{/with}}
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created
