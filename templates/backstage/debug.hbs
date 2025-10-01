@@ -155,16 +155,16 @@ helper_examples:
     output: "{{backstageVar "parameters.name"}}"
 
   eq:
-    input: "test" == "test"
+    input: '"test" == "test"'
     output: {{eq "test" "test"}}
 
   includes:
-    input: "['a','b','c'] includes 'b'"
+    input: '["a","b","c"] includes "b"'
     output: {{includes (split "a,b,c" ",") "b"}}
 
   json:
     input: "xrd.spec.names"
-    output: {{json xrd.spec.names}}
+    output: '{{{json xrd.spec.names}}}'
 
 # ----------------------------------------------------------------------------
 # Extracted Properties (via extractProperties helper)
@@ -226,11 +226,11 @@ usage_guide:
     result: "{{xrd.spec.versions.[0].name}}"
 
   accessing_annotation:
-    template: "{{getAnnotation xrd \"backstage.io/template\"}}"
+    template: '{{getAnnotation xrd "backstage.io/template"}}'
     result: "{{getAnnotation xrd "backstage.io/template"}}"
 
   accessing_label:
-    template: "{{getLabel xrd \"terasky.backstage.io/generate-form\"}}"
+    template: '{{getLabel xrd "terasky.backstage.io/generate-form"}}'
     result: "{{getLabel xrd "terasky.backstage.io/generate-form"}}"
 
   conditional_check:
