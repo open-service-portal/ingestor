@@ -375,11 +375,28 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
     } else {
       // Write each entity to separate file
       for (const entity of entities) {
-        // Use template name if available and entity has no kind (e.g., debug output)
-        const kind = entity.kind?.toLowerCase() || options.template || 'entity';
+        // Build kind suffix: include both entity kind and template name for clarity
+        const entityKind = entity.kind?.toLowerCase();
+        const templateName = options.template;
+
+        let kindSuffix: string;
+        if (entityKind && templateName) {
+          // Both available: template-kind (e.g., debug-template, default-api)
+          kindSuffix = `${templateName}-${entityKind}`;
+        } else if (entityKind) {
+          // Only entity kind: use it (e.g., template, api)
+          kindSuffix = entityKind;
+        } else if (templateName) {
+          // Only template name: use it (e.g., debug)
+          kindSuffix = templateName;
+        } else {
+          // Nothing available: generic fallback
+          kindSuffix = 'entity';
+        }
+
         // For non-standard entities (e.g., debug output), use xrd_metadata.name if available
         const name = entity.metadata?.name || entity.xrd_metadata?.name || 'output';
-        const filename = `${name}-${kind}.${format}`;
+        const filename = `${name}-${kindSuffix}.${format}`;
         const filepath = path.join(options.output, filename);
 
         const content = format === 'json'
