@@ -136,6 +136,54 @@ program
   });
 
 /**
+ * Discover XRD files in a directory
+ *
+ * Searches for XRDs in common locations:
+ * 1. configuration/xrd.yaml (Crossplane convention)
+ * 2. xrd.yaml in root directory
+ * 3. Any *.yaml or *.yml files that look like XRDs
+ */
+function discoverXRDs(dirPath: string): string[] {
+  const xrdFiles: string[] = [];
+
+  // Priority 1: Check for configuration/xrd.yaml (Crossplane template convention)
+  const configXrdPath = path.join(dirPath, 'configuration', 'xrd.yaml');
+  if (fs.existsSync(configXrdPath)) {
+    xrdFiles.push(configXrdPath);
+    return xrdFiles; // Found the canonical location, return it
+  }
+
+  // Priority 2: Check for xrd.yaml in the root
+  const rootXrdPath = path.join(dirPath, 'xrd.yaml');
+  if (fs.existsSync(rootXrdPath)) {
+    xrdFiles.push(rootXrdPath);
+    return xrdFiles;
+  }
+
+  // Priority 3: Scan for any YAML files that might be XRDs
+  const files = fs.readdirSync(dirPath)
+    .filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+
+  for (const file of files) {
+    const filePath = path.join(dirPath, file);
+
+    // Quick check: does it look like an XRD?
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      if (content.includes('kind: CompositeResourceDefinition') ||
+          content.includes('apiextensions.crossplane.io')) {
+        xrdFiles.push(filePath);
+      }
+    } catch {
+      // Skip files we can't read
+      continue;
+    }
+  }
+
+  return xrdFiles;
+}
+
+/**
  * Read input from file, directory, or stdin
  */
 async function readInput(input: string | undefined, options: any): Promise<XRDExtractData[]> {
@@ -162,12 +210,14 @@ async function readInput(input: string | undefined, options: any): Promise<XRDEx
     const stat = fs.statSync(input);
 
     if (stat.isDirectory()) {
-      // Read all JSON/YAML files from directory
-      const files = fs.readdirSync(input)
-        .filter(f => f.endsWith('.json') || f.endsWith('.yaml') || f.endsWith('.yml'));
+      // Discover XRD files in directory
+      const xrdFiles = discoverXRDs(input);
 
-      for (const file of files) {
-        const filePath = path.join(input, file);
+      if (options.verbose) {
+        log(`Found ${xrdFiles.length} XRD file(s)`, 'blue');
+      }
+
+      for (const filePath of xrdFiles) {
         const content = fs.readFileSync(filePath, 'utf-8');
         const parsed = parseInput(content);
 
