@@ -95,13 +95,28 @@ export class XRDTransformer {
       // Get template configuration from XRD annotations
       const templateConfig = this.getTemplateConfig(xrd);
 
-      // Prepare template context
+      // Render sub-templates (parameters and steps)
+      const parametersRendered = await this.renderSubTemplate(
+        'parameters',
+        templateConfig.parametersTemplate || 'default',
+        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp }
+      );
+
+      const stepsRendered = await this.renderSubTemplate(
+        'steps',
+        templateConfig.stepsTemplate || 'default',
+        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp }
+      );
+
+      // Prepare template context with rendered sub-templates
       const context = {
         xrd,
         metadata: xrdData.metadata,
         helpers: this.helpers,
         source: xrdData.source,
         timestamp: xrdData.timestamp,
+        parametersRendered,  // Pre-rendered parameters section
+        stepsRendered,       // Pre-rendered steps section
         ...options?.context,
       };
 
@@ -155,13 +170,56 @@ export class XRDTransformer {
 
     return {
       backstageTemplate: annotations['backstage.io/template'],
-      wizardTemplate: annotations['backstage.io/wizard'],
-      stepsTemplate: annotations['backstage.io/steps'],
+      apiTemplate: annotations['backstage.io/api-template'],
+      parametersTemplate: annotations['backstage.io/parameters-template'],
+      stepsTemplate: annotations['backstage.io/steps-template'],
     };
   }
 
   /**
-   * Generate Backstage template using Eta
+   * Load and register a sub-template as a Handlebars partial
+   */
+  private loadPartial(partialName: string, templatePath: string): void {
+    const fullPath = path.join(this.templateDir, templatePath);
+
+    if (!fs.existsSync(fullPath)) {
+      // Partial is optional, just skip if not found
+      return;
+    }
+
+    const templateSource = fs.readFileSync(fullPath, 'utf-8');
+    this.handlebars.registerPartial(partialName, templateSource);
+  }
+
+  /**
+   * Render a sub-template (parameters or steps)
+   */
+  private async renderSubTemplate(
+    type: 'parameters' | 'steps',
+    templateName: string,
+    context: any
+  ): Promise<string> {
+    const templatePath = path.join(type, `${templateName}.hbs`);
+    const fullPath = path.join(this.templateDir, templatePath);
+
+    if (!fs.existsSync(fullPath)) {
+      // Fall back to default
+      const defaultPath = path.join(this.templateDir, type, 'default.hbs');
+      if (!fs.existsSync(defaultPath)) {
+        throw new Error(`${type} template not found: ${templateName} (and no default.hbs)`);
+      }
+      const defaultSource = fs.readFileSync(defaultPath, 'utf-8');
+      const template = this.handlebars.compile(defaultSource);
+      return template(context);
+    }
+
+    const templateSource = fs.readFileSync(fullPath, 'utf-8');
+    const template = this.handlebars.compile(templateSource);
+    return template(context);
+  }
+
+  /**
+   * Generate Backstage template using Handlebars
    */
   private async generateBackstageTemplate(templateName: string, context: any): Promise<any> {
     // Check if template exists

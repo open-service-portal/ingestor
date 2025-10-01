@@ -1,0 +1,62 @@
+{{!--
+  Default Parameters Template
+  Generates the parameters section for Backstage scaffolder templates
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - helpers: Utility functions
+  - source: Source of the XRD
+  - timestamp: When extracted
+--}}
+    - title: Basic Information
+      required:
+        - name
+        - namespace
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Name of the {{xrd.spec.names.kind}}
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+        namespace:
+          title: Namespace
+          type: string
+          description: Kubernetes namespace
+          default: default
+
+    - title: Resource Configuration
+      properties:
+{{#with (extractProperties xrd) as |props|}}
+{{#each props}}
+        {{name}}:
+          title: {{title}}
+          type: {{type}}
+{{#if description}}
+          description: {{description}}
+{{/if}}
+{{#if default}}
+          default: {{json default}}
+{{/if}}
+{{#if enum}}
+          enum: {{json enum}}
+{{/if}}
+{{#if pattern}}
+          pattern: {{pattern}}
+{{/if}}
+{{#if minimum}}
+          minimum: {{minimum}}
+{{/if}}
+{{#if maximum}}
+          maximum: {{maximum}}
+{{/if}}
+{{/each}}
+{{#if props}}
+      required:
+{{#each props}}
+{{#if required}}
+        - {{name}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{/with}}

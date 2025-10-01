@@ -315,7 +315,58 @@ npx ts-node --project tsconfig.cli.json \
   path/to/xrd.yaml
 ```
 
-## Template Helpers
+## Template Customization
+
+### Annotation-Based Template Selection
+
+XRDs can specify which templates to use via annotations:
+
+```yaml
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: example.openportal.dev
+  annotations:
+    # Main template selection
+    backstage.io/template: "default"              # Main backstage template (optional)
+    backstage.io/api-template: "default"          # API doc template (optional)
+
+    # Sub-template selection (modular architecture)
+    backstage.io/parameters-template: "default"   # Parameters section (optional)
+    backstage.io/steps-template: "default"        # Steps section (optional)
+```
+
+**Available Templates:**
+- **backstage/** - Main Backstage Template entity structure
+- **parameters/** - Scaffolder form parameters section
+- **steps/** - Scaffolder workflow steps section
+- **api/** - API documentation entity
+
+### Template Architecture
+
+The transform uses a modular template architecture:
+
+1. **Main Template** (`templates/backstage/default.hbs`)
+   - Defines the overall Backstage Template structure
+   - Includes metadata, tags, annotations
+   - Embeds rendered parameters and steps
+
+2. **Parameters Template** (`templates/parameters/default.hbs`)
+   - Generates the scaffolder form fields
+   - Extracts properties from XRD schema
+   - Defines validation rules
+
+3. **Steps Template** (`templates/steps/default.hbs`)
+   - Defines the scaffolder workflow
+   - Creates kubernetes:apply actions
+   - Handles catalog registration
+
+4. **API Template** (`templates/api/default.hbs`)
+   - Generates OpenAPI documentation
+   - Documents resource endpoints
+   - Includes schema definitions
+
+### Template Helpers
 
 The templates have access to these helper functions:
 
@@ -325,6 +376,8 @@ The templates have access to these helper functions:
 - `getAnnotation` - Get annotation value
 - `getLabel` - Get label value
 - `backstageVar` - Preserve Backstage template variables
+- `split` - Split comma-separated strings
+- `trim` - Remove whitespace from strings
 
 ### Example Template Usage
 
@@ -345,6 +398,45 @@ manifest: |
   metadata:
     name: {{backstageVar "parameters.name"}}
 ```
+
+### Creating Custom Templates
+
+To create custom templates for your XRDs:
+
+1. **Copy the built-in templates:**
+   ```bash
+   cp -r templates my-custom-templates
+   ```
+
+2. **Modify the templates you want to customize:**
+   ```bash
+   # Custom parameters template for your XRD type
+   vim my-custom-templates/parameters/database.hbs
+
+   # Custom steps template for your workflow
+   vim my-custom-templates/steps/gitops.hbs
+   ```
+
+3. **Use annotations in your XRD:**
+   ```yaml
+   apiVersion: apiextensions.crossplane.io/v2
+   kind: CompositeResourceDefinition
+   metadata:
+     name: databases.platform.io
+     annotations:
+       backstage.io/parameters-template: "database"
+       backstage.io/steps-template: "gitops"
+   ```
+
+4. **Transform with custom templates:**
+   ```bash
+   ./scripts/xrd-transform.sh -t my-custom-templates your-xrd.yaml
+   ```
+
+**Template Naming Convention:**
+- Templates are named by their purpose (e.g., `database.hbs`, `gitops.hbs`)
+- Place in appropriate directory: `parameters/`, `steps/`, `backstage/`, `api/`
+- Always provide a `default.hbs` fallback in each directory
 
 ## Batch Processing
 

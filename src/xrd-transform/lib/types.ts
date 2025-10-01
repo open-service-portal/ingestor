@@ -34,9 +34,13 @@ export interface TransformResult {
 }
 
 export interface TemplateConfig {
-  /** Template name from XRD annotation or default */
+  /** Main Backstage template (backstage.io/template) */
   backstageTemplate?: string;
-  wizardTemplate?: string;
+  /** API documentation template (backstage.io/api-template) */
+  apiTemplate?: string;
+  /** Parameters section template (backstage.io/parameters-template) */
+  parametersTemplate?: string;
+  /** Steps section template (backstage.io/steps-template) */
   stepsTemplate?: string;
 }
 

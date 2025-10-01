@@ -1,0 +1,29 @@
+{{!--
+  Default Steps Template
+  Generates the steps section for Backstage scaffolder templates
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - helpers: Utility functions
+  - source: Source of the XRD
+  - timestamp: When extracted
+--}}
+    - id: create-resource
+      name: Create {{xrd.spec.names.kind}}
+      action: kubernetes:apply
+      input:
+        manifest: |
+          apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+          kind: {{xrd.spec.names.kind}}
+          metadata:
+            name: {{backstageVar "parameters.name"}}
+            namespace: {{backstageVar "parameters.namespace"}}
+          spec: {{backstageVar "parameters"}}
+
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: {{backstageVar "steps.create-resource.output.repoContentsUrl"}}
+        catalogInfoPath: /catalog-info.yaml
