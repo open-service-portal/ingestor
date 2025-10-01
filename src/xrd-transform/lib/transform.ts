@@ -68,6 +68,17 @@ export class XRDTransformer {
     this.handlebars.registerHelper('backstageVar', (varName: string) => {
       return `\${{ ${varName} }}`;
     });
+
+    // String manipulation helpers
+    this.handlebars.registerHelper('split', (str: string, delimiter: string) => {
+      if (!str) return [];
+      return str.split(delimiter);
+    });
+
+    this.handlebars.registerHelper('trim', (str: string) => {
+      if (!str) return '';
+      return str.trim();
+    });
   }
 
   /**

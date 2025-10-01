@@ -16,9 +16,9 @@ metadata:
   tags:
     - crossplane
     - {{xrd.spec.group}}
-{{#if xrd.metadata.labels}}
-{{#each xrd.metadata.labels}}
-    - {{this}}
+{{#if (getAnnotation xrd "openportal.dev/tags")}}
+{{#each (split (getAnnotation xrd "openportal.dev/tags") ",")}}
+    - {{trim this}}
 {{/each}}
 {{/if}}
   annotations:
