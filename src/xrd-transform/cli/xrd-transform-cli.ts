@@ -375,7 +375,8 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
     } else {
       // Write each entity to separate file
       for (const entity of entities) {
-        const kind = entity.kind?.toLowerCase() || 'entity';
+        // Use template name if available and entity has no kind (e.g., debug output)
+        const kind = entity.kind?.toLowerCase() || options.template || 'entity';
         // For non-standard entities (e.g., debug output), use xrd_metadata.name if available
         const name = entity.metadata?.name || entity.xrd_metadata?.name || 'output';
         const filename = `${name}-${kind}.${format}`;
