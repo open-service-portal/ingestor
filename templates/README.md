@@ -244,8 +244,68 @@ templates/
 │   └── storage.hbs
 ```
 
+## Debug Template
+
+A special `debug` template is provided to inspect all available variables during transformation:
+
+### Usage
+
+1. **Add annotation to XRD:**
+   ```yaml
+   metadata:
+     annotations:
+       backstage.io/template: "debug"
+   ```
+
+2. **Transform the XRD:**
+   ```bash
+   ./scripts/xrd-transform.sh your-xrd.yaml
+   ```
+
+3. **Review output:**
+   The generated template will include an `output` section showing:
+   - All XRD metadata (name, labels, annotations)
+   - XRD spec (group, names, versions)
+   - Extraction metadata (cluster, source, timestamp)
+   - Helper function examples with actual output
+   - Extracted properties from schema
+   - Template configuration from annotations
+   - Usage guide with examples
+
+### Example Output
+
+```yaml
+spec:
+  output:
+    xrd_metadata:
+      name: databases.platform.io
+    xrd_spec:
+      group: platform.io
+      names:
+        kind: Database
+        plural: databases
+    helper_examples:
+      slugify: databases-platform-io
+      extractTitle: Database Template
+      getAnnotation_template: debug
+    extracted_properties:
+      count: 3
+      properties:
+        - name: engine
+          type: string
+          required: true
+```
+
+### Use Cases
+
+- **Template Development**: Understand what data is available
+- **Debugging**: Investigate why a template isn't working
+- **Learning**: See how helpers transform data
+- **Documentation**: Generate examples of available variables
+
 ## See Also
 
 - [XRD Transform Examples](../docs/xrd-transform-examples.md) - Complete usage guide
-- [XRD Transform Architecture](../docs/xrd-transform-architecture.md) - Technical details
+- [XRD Annotations Reference](../docs/xrd-annotations-reference.md) - All annotation options
+- [Architecture Documentation](../docs/architecture.md) - Technical details
 - [Backstage Template Documentation](https://backstage.io/docs/features/software-templates/) - Official docs
