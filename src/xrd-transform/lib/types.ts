@@ -15,8 +15,8 @@ export interface XRDExtractData {
 }
 
 export interface TransformOptions {
-  /** Directory containing Eta templates */
-  templateDir: string;
+  /** Directory containing Handlebars templates (defaults to package root/templates) */
+  templateDir?: string;
   /** Additional context to pass to templates */
   context?: Record<string, any>;
   /** Output format */

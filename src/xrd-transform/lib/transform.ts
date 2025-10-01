@@ -15,13 +15,29 @@ import { createHelpers } from '../helpers';
 
 import * as Handlebars from 'handlebars';
 
+// Default template directory (at package root/templates)
+// Works for both ts-node (src/xrd-transform/lib) and compiled (dist/xrd-transform/lib)
+function getDefaultTemplateDir(): string {
+  // From src/xrd-transform/lib -> go up 3 levels to package root
+  const srcPath = path.join(__dirname, '../../../templates');
+  // From dist/xrd-transform/lib -> go up 3 levels to package root
+  const distPath = path.join(__dirname, '../../../templates');
+
+  if (fs.existsSync(srcPath)) {
+    return srcPath;
+  }
+  return distPath;
+}
+
+const DEFAULT_TEMPLATE_DIR = getDefaultTemplateDir();
+
 export class XRDTransformer {
   private handlebars: typeof Handlebars;
   private templateDir: string;
   private helpers: ReturnType<typeof createHelpers>;
 
-  constructor(options: TransformOptions) {
-    this.templateDir = options.templateDir;
+  constructor(options?: TransformOptions) {
+    this.templateDir = options?.templateDir || DEFAULT_TEMPLATE_DIR;
     this.helpers = createHelpers();
     this.handlebars = Handlebars.create();
 

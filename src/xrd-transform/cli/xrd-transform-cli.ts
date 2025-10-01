@@ -28,12 +28,20 @@ function log(message: string, color?: keyof typeof colors) {
   console.error(`${colorCode}${message}${colors.reset}`);
 }
 
+// Default to built-in templates (works for both ts-node and compiled)
+// From src/xrd-transform/cli or dist/xrd-transform/cli -> go up 3 levels to package root
+function getDefaultTemplateDir(): string {
+  const templatePath = path.join(__dirname, '../../../templates');
+  return templatePath;
+}
+const DEFAULT_TEMPLATE_DIR = getDefaultTemplateDir();
+
 program
   .name('xrd-transform')
-  .description('Transform XRDs into Backstage templates using Eta templates')
+  .description('Transform XRDs into Backstage templates using Handlebars templates')
   .version('1.0.0')
   .argument('[input]', 'Input file or directory (or stdin if not provided)')
-  .option('-t, --templates <dir>', 'Template directory', './templates')
+  .option('-t, --templates <dir>', 'Template directory (defaults to built-in templates)')
   .option('-o, --output <dir>', 'Output directory (default: stdout)')
   .option('-f, --format <format>', 'Output format (yaml|json)', 'yaml')
   .option('--single-file', 'Output all entities to a single file')
@@ -43,6 +51,9 @@ program
   .option('--watch', 'Watch for changes (when input is directory)')
   .action(async (input, options) => {
     try {
+      // Use default template directory if not specified
+      const templateDir = options.templates || DEFAULT_TEMPLATE_DIR;
+
       // Read input
       const xrdData = await readInput(input, options);
 
@@ -51,11 +62,11 @@ program
         process.exit(1);
       }
 
-      // Check template directory
-      if (!fs.existsSync(options.templates)) {
-        log(`Template directory not found: ${options.templates}`, 'red');
+      // Check template directory exists
+      if (!fs.existsSync(templateDir)) {
+        log(`Template directory not found: ${templateDir}`, 'red');
         log('Creating default templates...', 'yellow');
-        await createDefaultTemplates(options.templates);
+        await createDefaultTemplates(templateDir);
       }
 
       // Transform
@@ -64,7 +75,7 @@ program
       }
 
       const result = await transform(xrdData, {
-        templateDir: options.templates,
+        templateDir,
         format: options.format,
         verbose: options.verbose,
         validate: options.validate,
@@ -313,9 +324,10 @@ function watchDirectory(dir: string, options: any): void {
       log(`Change detected: ${filename}`, 'yellow');
 
       try {
+        const templateDir = options.templates || DEFAULT_TEMPLATE_DIR;
         const xrdData = await readInput(dir, options);
         const result = await transform(xrdData, {
-          templateDir: options.templates,
+          templateDir,
           format: options.format,
           verbose: options.verbose,
           validate: options.validate,
