@@ -34,10 +34,12 @@ const DEFAULT_TEMPLATE_DIR = getDefaultTemplateDir();
 export class XRDTransformer {
   private handlebars: typeof Handlebars;
   private templateDir: string;
+  private templateNameOverride?: string;
   private helpers: ReturnType<typeof createHelpers>;
 
   constructor(options?: TransformOptions) {
     this.templateDir = options?.templateDir || DEFAULT_TEMPLATE_DIR;
+    this.templateNameOverride = options?.templateName;
     this.helpers = createHelpers();
     this.handlebars = Handlebars.create();
 
@@ -95,16 +97,21 @@ export class XRDTransformer {
       // Get template configuration from XRD annotations
       const templateConfig = this.getTemplateConfig(xrd);
 
+      // Use 'default' template if no template name provided (empty/undefined), but respect explicit names
+      const backstageTemplateName = templateConfig.backstageTemplate || 'default';
+      const parametersTemplateName = templateConfig.parametersTemplate || 'default';
+      const stepsTemplateName = templateConfig.stepsTemplate || 'default';
+
       // Render sub-templates (parameters and steps)
       const parametersRendered = await this.renderSubTemplate(
         'parameters',
-        templateConfig.parametersTemplate || 'default',
+        parametersTemplateName,
         { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp }
       );
 
       const stepsRendered = await this.renderSubTemplate(
         'steps',
-        templateConfig.stepsTemplate || 'default',
+        stepsTemplateName,
         { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp }
       );
 
@@ -123,7 +130,7 @@ export class XRDTransformer {
       // Generate Backstage template
       try {
         const backstageTemplate = await this.generateBackstageTemplate(
-          templateConfig.backstageTemplate || 'default',
+          backstageTemplateName,
           context
         );
 
@@ -169,10 +176,11 @@ export class XRDTransformer {
     const annotations = xrd?.metadata?.annotations || {};
 
     return {
-      backstageTemplate: annotations['backstage.io/template'],
-      apiTemplate: annotations['backstage.io/api-template'],
-      parametersTemplate: annotations['backstage.io/parameters-template'],
-      stepsTemplate: annotations['backstage.io/steps-template'],
+      // CLI override takes precedence over annotation
+      backstageTemplate: this.templateNameOverride || annotations['backstage.io/template'],
+      apiTemplate: this.templateNameOverride || annotations['backstage.io/api-template'],
+      parametersTemplate: this.templateNameOverride || annotations['backstage.io/parameters-template'],
+      stepsTemplate: this.templateNameOverride || annotations['backstage.io/steps-template'],
     };
   }
 
@@ -227,16 +235,12 @@ export class XRDTransformer {
     const fullPath = path.join(this.templateDir, templatePath);
 
     if (!fs.existsSync(fullPath)) {
-      // Fall back to default template
-      const defaultPath = path.join(this.templateDir, 'backstage', 'default.hbs');
-      if (!fs.existsSync(defaultPath)) {
-        throw new Error(`Template not found: ${templateName} (and no default.hbs)`);
-      }
+      // No fallback - template must exist
+      throw new Error(`Backstage template not found: ${templateName} (${fullPath})`);
     }
 
     // Read and compile the template
-    const finalTemplatePath = fs.existsSync(fullPath) ? fullPath : path.join(this.templateDir, 'backstage', 'default.hbs');
-    const templateSource = fs.readFileSync(finalTemplatePath, 'utf-8');
+    const templateSource = fs.readFileSync(fullPath, 'utf-8');
     const template = this.handlebars.compile(templateSource);
 
     // Render the template
@@ -259,10 +263,14 @@ export class XRDTransformer {
    * Generate API documentation entity
    */
   private async generateAPIDoc(xrd: any, context: any): Promise<any | null> {
-    const apiTemplatePath = path.join(this.templateDir, 'api', 'default.hbs');
+    // Get template name from config (respects CLI override)
+    const templateConfig = this.getTemplateConfig(xrd);
+    const templateName = templateConfig.apiTemplate || 'default';
+
+    const apiTemplatePath = path.join(this.templateDir, 'api', `${templateName}.hbs`);
 
     if (!fs.existsSync(apiTemplatePath)) {
-      return null; // API doc is optional
+      return null; // API doc is optional - skip if template doesn't exist
     }
 
     const templateSource = fs.readFileSync(apiTemplatePath, 'utf-8');

@@ -17,6 +17,8 @@ export interface XRDExtractData {
 export interface TransformOptions {
   /** Directory containing Handlebars templates (defaults to package root/templates) */
   templateDir?: string;
+  /** Template name override (e.g., "debug", "default") - overrides XRD annotation */
+  templateName?: string;
   /** Additional context to pass to templates */
   context?: Record<string, any>;
   /** Output format */

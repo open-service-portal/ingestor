@@ -41,7 +41,8 @@ program
   .description('Transform XRDs into Backstage templates using Handlebars templates')
   .version('1.0.0')
   .argument('[input]', 'Input file or directory (or stdin if not provided)')
-  .option('-t, --templates <dir>', 'Template directory (defaults to built-in templates)')
+  .option('-t, --template <name>', 'Template name to use (overrides XRD annotation, e.g., "debug", "default")')
+  .option('--template-path <dir>', 'Template directory path (defaults to built-in templates)')
   .option('-o, --output <dir>', 'Output directory (default: stdout)')
   .option('-f, --format <format>', 'Output format (yaml|json)', 'yaml')
   .option('--only <type>', 'Only generate specific entity type (template|api)')
@@ -53,7 +54,7 @@ program
   .action(async (input, options) => {
     try {
       // Use default template directory if not specified
-      const templateDir = options.templates || DEFAULT_TEMPLATE_DIR;
+      const templateDir = options.templatePath || DEFAULT_TEMPLATE_DIR;
 
       // Read input
       const xrdData = await readInput(input, options);
@@ -73,10 +74,14 @@ program
       // Transform
       if (options.verbose) {
         log(`Transforming ${xrdData.length} XRD(s)...`, 'blue');
+        if (options.template) {
+          log(`Using template override: ${options.template}`, 'blue');
+        }
       }
 
       const result = await transform(xrdData, {
         templateDir,
+        templateName: options.template,  // CLI override for template name
         format: options.format,
         verbose: options.verbose,
         validate: options.validate,
@@ -321,7 +326,8 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
       // Write each entity to separate file
       for (const entity of entities) {
         const kind = entity.kind?.toLowerCase() || 'entity';
-        const name = entity.metadata?.name || 'unnamed';
+        // For non-standard entities (e.g., debug output), use xrd_metadata.name if available
+        const name = entity.metadata?.name || entity.xrd_metadata?.name || 'output';
         const filename = `${name}-${kind}.${format}`;
         const filepath = path.join(options.output, filename);
 
