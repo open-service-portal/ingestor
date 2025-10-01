@@ -582,4 +582,4 @@ git push
 - [Backstage Export CLI Guide](./cli-export.md)
 - [Configuration Reference](./configuration.md)
 - [Architecture Overview](./architecture.md)
-- [XRD Ingestion Details](./XRD_INGESTION.md)
+- [XRD Ingestion Details](./xrd-ingestion.md)

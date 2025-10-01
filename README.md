@@ -70,8 +70,8 @@ kubernetesIngestor:
 ### For Developers
 
 - **[Architecture Overview](./docs/architecture.md)** - System design and components
-- **[XRD Ingestion](./docs/XRD_INGESTION.md)** - How XRDs are transformed to templates
-- **[CLI Implementation](./docs/CLI-IMPLEMENTATION.md)** - CLI tools architecture
+- **[XRD Ingestion](./docs/xrd-ingestion.md)** - How XRDs are transformed to templates
+- **[CLI Implementation](./docs/cli-implementation.md)** - CLI tools architecture
 - **[Testing Guide](./tests/README.md)** - Running and writing tests
 
 ## Backend Integration
