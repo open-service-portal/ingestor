@@ -62,7 +62,10 @@ kubernetesIngestor:
 
 ### For Users
 
+- **[Quick Start Guide](./docs/quick-start.md)** - Get started quickly with copy-paste examples
 - **[Configuration Reference](./docs/configuration.md)** - All configuration options with examples
+- **[XRD Annotations Reference](./docs/xrd-annotations-reference.md)** - Control template generation with annotations
+- **[XRD Transform Examples](./docs/xrd-transform-examples.md)** - Complete usage guide for xrd-transform tool
 - **[XR Status Links](./docs/xr-status-links.md)** - Automatic link extraction from status fields
 - **[CLI: Ingestor](./docs/cli-ingestor.md)** - Process Kubernetes resources from files
 - **[CLI: Export](./docs/cli-export.md)** - Export entities from Backstage catalog
@@ -71,6 +74,7 @@ kubernetesIngestor:
 
 - **[Architecture Overview](./docs/architecture.md)** - System design and components
 - **[XRD Ingestion](./docs/xrd-ingestion.md)** - How XRDs are transformed to templates
+- **[Template Development Guide](./templates/README.md)** - Creating custom Handlebars templates
 - **[CLI Implementation](./docs/cli-implementation.md)** - CLI tools architecture
 - **[Testing Guide](./tests/README.md)** - Running and writing tests
 
