@@ -54,6 +54,7 @@ Options:
   -t, --templates <dir>    Template directory (defaults to built-in templates)
   -o, --output <dir>       Output directory (default: stdout)
   -f, --format <format>    Output format (yaml|json) (default: yaml)
+  --only <type>            Only generate specific entity type (template|api)
   --single-file            Output all entities to a single file
   --organize               Organize output by entity type
   -v, --verbose            Verbose output
@@ -61,6 +62,57 @@ Options:
   --watch                  Watch for changes (when input is directory)
   -h, --help               Display help
 ```
+
+## Filtering Output by Entity Type
+
+Generate only specific entity types using `--only`:
+
+### Generate Only Templates
+
+```bash
+# From workspace root
+./scripts/xrd-transform.sh --only template template-namespace/configuration/xrd.yaml
+
+# From plugin directory
+npx ts-node --project tsconfig.cli.json \
+  src/xrd-transform/cli/xrd-transform-cli.ts \
+  --only template \
+  ../../../template-namespace/configuration/xrd.yaml
+```
+
+Output: Only the Backstage Template entity (no API docs)
+
+### Generate Only API Documentation
+
+```bash
+# From workspace root
+./scripts/xrd-transform.sh --only api template-namespace/configuration/xrd.yaml
+
+# From plugin directory
+npx ts-node --project tsconfig.cli.json \
+  src/xrd-transform/cli/xrd-transform-cli.ts \
+  --only api \
+  ../../../template-namespace/configuration/xrd.yaml
+```
+
+Output: Only the API entity (no Template)
+
+### Use Cases for Filtering
+
+**Generate templates only:**
+- When you only need scaffolder templates
+- When updating templates without regenerating API docs
+- When batch-processing many XRDs for templates
+
+**Generate API docs only:**
+- When you only need OpenAPI specifications
+- When documenting existing resources
+- When integrating with API management tools
+
+**Generate both (default):**
+- When you want complete Backstage integration
+- When creating initial catalog entries
+- When you need both scaffolding and documentation
 
 ## Example: template-namespace XRD
 

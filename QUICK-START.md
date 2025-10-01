@@ -79,6 +79,12 @@ plugins/ingestor/
 ## Common Options
 
 ```bash
+# Only generate templates (no API docs)
+--only template
+
+# Only generate API docs (no templates)
+--only api
+
 # Use custom templates
 -t /path/to/templates
 
@@ -93,6 +99,19 @@ plugins/ingestor/
 
 # Watch for changes
 --watch
+```
+
+## Filter Output Examples
+
+```bash
+# Generate only Backstage template (no API entity)
+./scripts/xrd-transform.sh --only template template-namespace/configuration/xrd.yaml
+
+# Generate only API documentation
+./scripts/xrd-transform.sh --only api template-namespace/configuration/xrd.yaml
+
+# Generate both (default behavior)
+./scripts/xrd-transform.sh template-namespace/configuration/xrd.yaml
 ```
 
 ## See Full Examples

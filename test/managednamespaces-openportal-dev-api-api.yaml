@@ -1,0 +1,63 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: managednamespaces-openportal-dev-api
+  title: ManagedNamespace Template API
+  description: API specification for ManagedNamespace
+  tags:
+    - crossplane
+    - ingestor
+    - openportal.dev
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    crossplane.io/xrd-name: managednamespaces.openportal.dev
+spec:
+  type: openapi
+  lifecycle: v1alpha1
+  owner: platform-team
+  definition:
+    openapi: 3.0.0
+    info:
+      title: ManagedNamespace API
+      version: v1alpha1
+      description: OpenAPI specification for ManagedNamespace
+    paths:
+      /managednamespaces:
+        get:
+          summary: List managednamespaces
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create ManagedNamespace
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: ManagedNamespace configuration
+                      properties:
+                        name:
+                          type: string
+                          description: Name of the namespace to create
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      required:
+                        - name
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created

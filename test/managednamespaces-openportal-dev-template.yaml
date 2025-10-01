@@ -1,0 +1,61 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: managednamespaces-openportal-dev
+  title: ManagedNamespace Template
+  description: Create and manage ManagedNamespace resources
+  tags:
+    - crossplane
+    - openportal.dev
+    - true
+    - dev
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    crossplane.io/xrd-name: managednamespaces.openportal.dev
+    crossplane.io/xrd-group: openportal.dev
+spec:
+  owner: platform-team
+  type: crossplane-resource
+  parameters:
+    - title: Basic Information
+      required:
+        - name
+        - namespace
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Name of the ManagedNamespace
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+        namespace:
+          title: Namespace
+          type: string
+          description: Kubernetes namespace
+          default: default
+    - title: Resource Configuration
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Name of the namespace to create
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+      required:
+        - name
+  steps:
+    - id: create-resource
+      name: Create ManagedNamespace
+      action: kubernetes:apply
+      input:
+        manifest: |
+          apiVersion: openportal.dev/v1alpha1
+          kind: ManagedNamespace
+          metadata:
+            name: ${{ parameters.name }}
+            namespace: ${{ parameters.namespace }}
+          spec: ${{ parameters }}
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.create-resource.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml

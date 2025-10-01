@@ -44,6 +44,7 @@ program
   .option('-t, --templates <dir>', 'Template directory (defaults to built-in templates)')
   .option('-o, --output <dir>', 'Output directory (default: stdout)')
   .option('-f, --format <format>', 'Output format (yaml|json)', 'yaml')
+  .option('--only <type>', 'Only generate specific entity type (template|api)')
   .option('--single-file', 'Output all entities to a single file')
   .option('--organize', 'Organize output by entity type')
   .option('-v, --verbose', 'Verbose output')
@@ -87,11 +88,34 @@ program
         process.exit(1);
       }
 
+      // Filter entities by type if --only specified
+      let entitiesToOutput = result.entities;
+      if (options.only) {
+        const filterType = options.only.toLowerCase();
+        if (filterType === 'template') {
+          entitiesToOutput = result.entities.filter((e: any) =>
+            e.kind === 'Template'
+          );
+          if (options.verbose) {
+            log(`Filtered to ${entitiesToOutput.length} Template entities`, 'blue');
+          }
+        } else if (filterType === 'api') {
+          entitiesToOutput = result.entities.filter((e: any) =>
+            e.kind === 'API'
+          );
+          if (options.verbose) {
+            log(`Filtered to ${entitiesToOutput.length} API entities`, 'blue');
+          }
+        } else {
+          log(`Warning: Unknown entity type '${options.only}', showing all entities`, 'yellow');
+        }
+      }
+
       // Output
-      await writeOutput(result.entities, options);
+      await writeOutput(entitiesToOutput, options);
 
       if (options.verbose) {
-        log(`✨ Generated ${result.entities.length} entities`, 'green');
+        log(`✨ Generated ${entitiesToOutput.length} entities`, 'green');
       }
 
       // Watch mode
@@ -334,8 +358,19 @@ function watchDirectory(dir: string, options: any): void {
         });
 
         if (result.success) {
-          await writeOutput(result.entities, options);
-          log(`✨ Regenerated ${result.entities.length} entities`, 'green');
+          // Filter entities by type if --only specified
+          let entitiesToOutput = result.entities;
+          if (options.only) {
+            const filterType = options.only.toLowerCase();
+            if (filterType === 'template') {
+              entitiesToOutput = result.entities.filter((e: any) => e.kind === 'Template');
+            } else if (filterType === 'api') {
+              entitiesToOutput = result.entities.filter((e: any) => e.kind === 'API');
+            }
+          }
+
+          await writeOutput(entitiesToOutput, options);
+          log(`✨ Regenerated ${entitiesToOutput.length} entities`, 'green');
         } else {
           log('Transform failed:', 'red');
           result.errors?.forEach(error => log(`  - ${error}`, 'red'));
