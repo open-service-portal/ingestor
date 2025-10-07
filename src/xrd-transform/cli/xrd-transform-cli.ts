@@ -391,14 +391,12 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
           kindSuffix = templateName;
         }
 
-        // Get base name (xrd_metadata for debug output, metadata.name for standard entities)
-        let baseName = entity.xrd_metadata?.name || entity.metadata?.name || 'output';
-
-        // Strip kind suffix from entity name if present (e.g., "name-api" → "name" when kind is "api")
-        // This avoids duplication like "name-api-default-api.yaml"
-        if (entityKind && baseName.endsWith(`-${entityKind}`)) {
-          baseName = baseName.slice(0, -(entityKind.length + 1));
-        }
+        // Use base XRD name (set by transform) or fallback to entity/debug metadata
+        // Priority: _xrdBaseName (standard entities) → xrd_metadata.name (debug) → metadata.name → 'output'
+        const baseName = entity._xrdBaseName
+                      || entity.xrd_metadata?.name
+                      || entity.metadata?.name
+                      || 'output';
 
         const filename = `${baseName}-${kindSuffix}.${format}`;
         const filepath = path.join(options.output, filename);

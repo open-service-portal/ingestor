@@ -135,6 +135,8 @@ export class XRDTransformer {
         );
 
         if (backstageTemplate) {
+          // Add base XRD name for clean filename generation
+          backstageTemplate._xrdBaseName = this.helpers.slugify(xrd.metadata.name);
           entities.push(backstageTemplate);
         }
       } catch (error) {
@@ -145,6 +147,8 @@ export class XRDTransformer {
       try {
         const apiDoc = await this.generateAPIDoc(xrd, context);
         if (apiDoc) {
+          // Add base XRD name for clean filename generation
+          apiDoc._xrdBaseName = this.helpers.slugify(xrd.metadata.name);
           entities.push(apiDoc);
         }
       } catch (error) {
