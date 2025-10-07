@@ -79,6 +79,9 @@ program
         }
       }
 
+      // Determine effective template name (override or default)
+      const effectiveTemplateName = options.template || 'default';
+
       const result = await transform(xrdData, {
         templateDir,
         templateName: options.template,  // CLI override for template name
@@ -117,7 +120,7 @@ program
       }
 
       // Output
-      await writeOutput(entitiesToOutput, options);
+      await writeOutput(entitiesToOutput, { ...options, effectiveTemplateName });
 
       if (options.verbose) {
         log(`✨ Generated ${entitiesToOutput.length} entities`, 'green');
@@ -375,28 +378,29 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
     } else {
       // Write each entity to separate file
       for (const entity of entities) {
-        // Build kind suffix: include both entity kind and template name for clarity
+        // Build kind suffix: template-kind pattern for clarity
         const entityKind = entity.kind?.toLowerCase();
-        const templateName = options.template;
+        const templateName = options.effectiveTemplateName; // Always available (default or override)
 
         let kindSuffix: string;
-        if (entityKind && templateName) {
-          // Both available: template-kind (e.g., debug-template, default-api)
+        if (entityKind) {
+          // Standard entity: template-kind (e.g., default-template, default-api, debug-template)
           kindSuffix = `${templateName}-${entityKind}`;
-        } else if (entityKind) {
-          // Only entity kind: use it (e.g., template, api)
-          kindSuffix = entityKind;
-        } else if (templateName) {
-          // Only template name: use it (e.g., debug)
-          kindSuffix = templateName;
         } else {
-          // Nothing available: generic fallback
-          kindSuffix = 'entity';
+          // Non-standard entity (like debug output): just template name
+          kindSuffix = templateName;
         }
 
-        // For non-standard entities (e.g., debug output), use xrd_metadata.name if available
-        const name = entity.metadata?.name || entity.xrd_metadata?.name || 'output';
-        const filename = `${name}-${kindSuffix}.${format}`;
+        // Get base name (xrd_metadata for debug output, metadata.name for standard entities)
+        let baseName = entity.xrd_metadata?.name || entity.metadata?.name || 'output';
+
+        // Strip kind suffix from entity name if present (e.g., "name-api" → "name" when kind is "api")
+        // This avoids duplication like "name-api-default-api.yaml"
+        if (entityKind && baseName.endsWith(`-${entityKind}`)) {
+          baseName = baseName.slice(0, -(entityKind.length + 1));
+        }
+
+        const filename = `${baseName}-${kindSuffix}.${format}`;
         const filepath = path.join(options.output, filename);
 
         const content = format === 'json'
