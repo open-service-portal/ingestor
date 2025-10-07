@@ -322,9 +322,12 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
   if (!options.output) {
     // Write to stdout
     for (const entity of entities) {
+      // Remove internal fields before writing
+      const { _xrdBaseName, ...entityToWrite } = entity;
+
       const output = format === 'json'
-        ? JSON.stringify(entity, null, 2)
-        : yaml.dump(entity);
+        ? JSON.stringify(entityToWrite, null, 2)
+        : yaml.dump(entityToWrite);
 
       console.log(output);
       if (format === 'yaml' && entities.indexOf(entity) < entities.length - 1) {
@@ -342,9 +345,12 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
       const filename = `entities.${format}`;
       const filepath = path.join(options.output, filename);
 
+      // Remove internal fields from all entities
+      const cleanEntities = entities.map(({ _xrdBaseName, ...rest }) => rest);
+
       const content = format === 'json'
-        ? JSON.stringify(entities, null, 2)
-        : entities.map(e => yaml.dump(e)).join('---\n');
+        ? JSON.stringify(cleanEntities, null, 2)
+        : cleanEntities.map(e => yaml.dump(e)).join('---\n');
 
       fs.writeFileSync(filepath, content);
 
@@ -365,9 +371,12 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
         const filename = `${name}.${format}`;
         const filepath = path.join(dir, filename);
 
+        // Remove internal fields before writing
+        const { _xrdBaseName, ...entityToWrite } = entity;
+
         const content = format === 'json'
-          ? JSON.stringify(entity, null, 2)
-          : yaml.dump(entity);
+          ? JSON.stringify(entityToWrite, null, 2)
+          : yaml.dump(entityToWrite);
 
         fs.writeFileSync(filepath, content);
 
@@ -401,9 +410,12 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
         const filename = `${baseName}-${kindSuffix}.${format}`;
         const filepath = path.join(options.output, filename);
 
+        // Remove internal fields before writing
+        const { _xrdBaseName, ...entityToWrite } = entity;
+
         const content = format === 'json'
-          ? JSON.stringify(entity, null, 2)
-          : yaml.dump(entity);
+          ? JSON.stringify(entityToWrite, null, 2)
+          : yaml.dump(entityToWrite);
 
         fs.writeFileSync(filepath, content);
 
