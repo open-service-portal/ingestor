@@ -84,6 +84,8 @@ export function createHelpers(): TemplateHelpers {
           default: property.default,
           enum: property.enum,
           pattern: property.pattern,
+          minLength: property.minLength,
+          maxLength: property.maxLength,
           minimum: property.minimum,
           maximum: property.maximum,
         });

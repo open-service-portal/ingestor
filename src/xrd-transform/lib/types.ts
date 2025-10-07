@@ -66,6 +66,8 @@ export interface PropertyInfo {
   default?: any;
   enum?: any[];
   pattern?: string;
+  minLength?: number;
+  maxLength?: number;
   minimum?: number;
   maximum?: number;
 }
