@@ -156,6 +156,48 @@ export class ComponentEntityBuilder {
   }
 
   /**
+   * Set Crossplane Claim metadata
+   */
+  withCrossplaneClaimMetadata(
+    claim: any,
+    clusterName: string,
+    systemNamespace?: string,
+    systemName?: string,
+    systemReferencesNamespace?: string,
+    prefix: string = 'backstage.io',
+  ): this {
+    return this.withKubernetesMetadata(
+      claim,
+      clusterName,
+      systemNamespace,
+      systemName,
+      systemReferencesNamespace,
+      prefix
+    );
+  }
+
+  /**
+   * Set Crossplane XR (Composite Resource) metadata
+   */
+  withCrossplaneXRMetadata(
+    xr: any,
+    clusterName: string,
+    systemNamespace?: string,
+    systemName?: string,
+    systemReferencesNamespace?: string,
+    prefix: string = 'backstage.io',
+  ): this {
+    return this.withKubernetesMetadata(
+      xr,
+      clusterName,
+      systemNamespace,
+      systemName,
+      systemReferencesNamespace,
+      prefix
+    );
+  }
+
+  /**
    * Build and return the final entity
    */
   build(): Entity {
