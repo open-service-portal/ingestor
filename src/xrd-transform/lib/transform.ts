@@ -284,6 +284,7 @@ export class XRDTransformer {
     try {
       return yaml.load(rendered);
     } catch (error) {
+      console.error(`Failed to parse API template for ${xrd.metadata.name}: ${error}`);
       return null;
     }
   }
