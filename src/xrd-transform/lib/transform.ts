@@ -181,10 +181,10 @@ export class XRDTransformer {
 
     return {
       // CLI override takes precedence over annotation
-      backstageTemplate: this.templateNameOverride || annotations['backstage.io/template'],
-      apiTemplate: this.templateNameOverride || annotations['backstage.io/api-template'],
-      parametersTemplate: this.templateNameOverride || annotations['backstage.io/parameters-template'],
-      stepsTemplate: this.templateNameOverride || annotations['backstage.io/steps-template'],
+      backstageTemplate: this.templateNameOverride || annotations['openportal.dev/template'],
+      apiTemplate: this.templateNameOverride || annotations['openportal.dev/api-template'],
+      parametersTemplate: this.templateNameOverride || annotations['openportal.dev/parameters-template'],
+      stepsTemplate: this.templateNameOverride || annotations['openportal.dev/steps-template'],
     };
   }
 

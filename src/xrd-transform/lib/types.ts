@@ -36,13 +36,13 @@ export interface TransformResult {
 }
 
 export interface TemplateConfig {
-  /** Main Backstage template (backstage.io/template) */
+  /** Main Backstage template (openportal.dev/template) */
   backstageTemplate?: string;
-  /** API documentation template (backstage.io/api-template) */
+  /** API documentation template (openportal.dev/api-template) */
   apiTemplate?: string;
-  /** Parameters section template (backstage.io/parameters-template) */
+  /** Parameters section template (openportal.dev/parameters-template) */
   parametersTemplate?: string;
-  /** Steps section template (backstage.io/steps-template) */
+  /** Steps section template (openportal.dev/steps-template) */
   stepsTemplate?: string;
 }
 
