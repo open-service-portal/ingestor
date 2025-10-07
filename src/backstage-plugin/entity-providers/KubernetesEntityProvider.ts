@@ -267,10 +267,10 @@ export class KubernetesEntityProvider implements EntityProvider {
         ...Object.fromEntries(
           Object.entries(annotations).filter(([key]) => key !== `${prefix}/links`)
         ),
-        'terasky.backstage.io/kubernetes-resource-kind': resource.kind,
-        'terasky.backstage.io/kubernetes-resource-name': resource.metadata.name,
-        'terasky.backstage.io/kubernetes-resource-api-version': resource.apiVersion,
-        'terasky.backstage.io/kubernetes-resource-namespace': resource.metadata.namespace || '',
+        'openportal.dev/kubernetes-kind': resource.kind,
+        'openportal.dev/kubernetes-name': resource.metadata.name,
+        'openportal.dev/kubernetes-api-version': resource.apiVersion,
+        'openportal.dev/kubernetes-namespace': resource.metadata.namespace || '',
         ...customAnnotations,
         ...(systemNameModel === 'cluster-namespace' || systemNamespaceModel === 'cluster' ? {
           'backstage.io/kubernetes-cluster': resource.clusterName,

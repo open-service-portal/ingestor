@@ -26,9 +26,8 @@ export function createHelpers(): TemplateHelpers {
      * Extract a title from XRD
      */
     extractTitle: (xrd: any): string => {
-      // Try annotations first
-      const annotationTitle = xrd?.metadata?.annotations?.['backstage.io/title'] ||
-                             xrd?.metadata?.annotations?.['openportal.dev/title'];
+      // Try backstage.io/title annotation first (standard)
+      const annotationTitle = xrd?.metadata?.annotations?.['backstage.io/title'];
       if (annotationTitle) return annotationTitle;
 
       // Fall back to spec.names.kind
