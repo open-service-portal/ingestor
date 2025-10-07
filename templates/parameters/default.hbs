@@ -9,10 +9,17 @@
   - source: Source of the XRD
   - timestamp: When extracted
 --}}
-    - title: Basic Information
+    - title: Resource Configuration
       required:
         - name
         - namespace
+{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
+{{#each props}}
+{{#if required}}
+        - {{name}}
+{{/if}}
+{{/each}}
+{{/with}}
       properties:
         name:
           title: Name
@@ -25,10 +32,6 @@
           description: Kubernetes namespace
           default: default
 {{#with (filterProperties (extractProperties xrd) "name") as |props|}}
-{{#if props.length}}
-
-    - title: Resource Configuration
-      properties:
 {{#each props}}
         {{name}}:
           title: {{title}}
@@ -58,11 +61,4 @@
           maximum: {{maximum}}
 {{/if}}
 {{/each}}
-      required:
-{{#each props}}
-{{#if required}}
-        - {{name}}
-{{/if}}
-{{/each}}
-{{/if}}
 {{/with}}

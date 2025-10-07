@@ -9,9 +9,16 @@
   - source: Source of the XRD
   - timestamp: When extracted
 --}}
-    - title: Basic Information
+    - title: Resource Configuration
       required:
         - name
+{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
+{{#each props}}
+{{#if required}}
+        - {{name}}
+{{/if}}
+{{/each}}
+{{/with}}
       properties:
         name:
           title: Name
@@ -19,10 +26,6 @@
           description: Name of the {{xrd.spec.names.kind}}
           pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
 {{#with (filterProperties (extractProperties xrd) "name") as |props|}}
-{{#if props.length}}
-
-    - title: Resource Configuration
-      properties:
 {{#each props}}
         {{name}}:
           title: {{title}}
@@ -52,11 +55,4 @@
           maximum: {{maximum}}
 {{/if}}
 {{/each}}
-      required:
-{{#each props}}
-{{#if required}}
-        - {{name}}
-{{/if}}
-{{/each}}
-{{/if}}
 {{/with}}
