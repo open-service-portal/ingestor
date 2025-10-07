@@ -21,7 +21,7 @@
 
     - title: Resource Configuration
       properties:
-{{#with (extractProperties xrd) as |props|}}
+{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
 {{#each props}}
         {{name}}:
           title: {{title}}

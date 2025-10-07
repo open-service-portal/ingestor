@@ -50,6 +50,7 @@ export interface TemplateHelpers {
   slugify: (text: string) => string;
   extractTitle: (xrd: any) => string;
   extractProperties: (xrd: any) => PropertyInfo[];
+  filterProperties: (properties: PropertyInfo[], ...excludeFields: string[]) => PropertyInfo[];
   generateValidation: (schema: any) => any;
   toYaml: (obj: any) => string;
   toJson: (obj: any) => string;

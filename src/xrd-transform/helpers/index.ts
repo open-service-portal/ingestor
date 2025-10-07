@@ -95,6 +95,15 @@ export function createHelpers(): TemplateHelpers {
     },
 
     /**
+     * Filter properties by excluding specific field names
+     * Usage in templates: {{#with (filterProperties (extractProperties xrd) "name" "namespace") as |props|}}
+     */
+    filterProperties: (properties: PropertyInfo[], ...excludeFields: string[]): PropertyInfo[] => {
+      // Filter out any fields that match the exclude list
+      return properties.filter(prop => !excludeFields.includes(prop.name));
+    },
+
+    /**
      * Generate validation rules from schema
      */
     generateValidation: (schema: any): any => {

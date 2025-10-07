@@ -27,7 +27,7 @@
 
     - title: Resource Configuration
       properties:
-{{#with (extractProperties xrd) as |props|}}
+{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
 {{#each props}}
         {{name}}:
           title: {{title}}
@@ -43,6 +43,12 @@
 {{/if}}
 {{#if pattern}}
           pattern: {{pattern}}
+{{/if}}
+{{#if minLength}}
+          minLength: {{minLength}}
+{{/if}}
+{{#if maxLength}}
+          maxLength: {{maxLength}}
 {{/if}}
 {{#if minimum}}
           minimum: {{minimum}}
