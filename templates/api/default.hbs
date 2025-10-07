@@ -17,8 +17,8 @@ metadata:
     crossplane.io/xrd-name: {{xrd.metadata.name}}
 spec:
   type: openapi
-  lifecycle: {{xrd.spec.versions.[0].name}}
-  owner: platform-team
+  lifecycle: {{#if (getAnnotation xrd "terasky.backstage.io/lifecycle")}}{{getAnnotation xrd "terasky.backstage.io/lifecycle"}}{{else}}experimental{{/if}}
+  owner: {{#if (getAnnotation xrd "terasky.backstage.io/owner")}}{{getAnnotation xrd "terasky.backstage.io/owner"}}{{else}}platform-team{{/if}}
   definition:
     openapi: 3.0.0
     info:
