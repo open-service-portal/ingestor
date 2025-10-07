@@ -18,10 +18,11 @@
           type: string
           description: Name of the {{xrd.spec.names.kind}}
           pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
+{{#if props.length}}
 
     - title: Resource Configuration
       properties:
-{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
 {{#each props}}
         {{name}}:
           title: {{title}}
@@ -51,7 +52,6 @@
           maximum: {{maximum}}
 {{/if}}
 {{/each}}
-{{#if props}}
       required:
 {{#each props}}
 {{#if required}}

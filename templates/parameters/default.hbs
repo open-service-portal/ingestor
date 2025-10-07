@@ -24,10 +24,11 @@
           type: string
           description: Kubernetes namespace
           default: default
+{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
+{{#if props.length}}
 
     - title: Resource Configuration
       properties:
-{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
 {{#each props}}
         {{name}}:
           title: {{title}}
@@ -57,7 +58,6 @@
           maximum: {{maximum}}
 {{/if}}
 {{/each}}
-{{#if props}}
       required:
 {{#each props}}
 {{#if required}}
