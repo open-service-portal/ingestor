@@ -84,11 +84,11 @@ function validateGitOpsConfig(config: any, templateName: string): string | undef
     return undefined;
   }
 
-  const gitopsConfig = config?.kubernetesIngestor?.crossplane?.xrds?.gitops;
+  const gitopsConfig = config?.ingestor?.crossplane?.xrds?.gitops;
 
   if (!gitopsConfig) {
     return `GitOps template requires configuration in app-config/ingestor.yaml under:
-  kubernetesIngestor.crossplane.xrds.gitops
+  ingestor.crossplane.xrds.gitops
 
 Example:
   kubernetesIngestor:
@@ -107,7 +107,7 @@ Example:
 
   if (missing.length > 0) {
     return `GitOps configuration is incomplete. Missing required fields:
-  ${missing.map(f => `- kubernetesIngestor.crossplane.xrds.gitops.${f}`).join('\n  ')}
+  ${missing.map(f => `- ingestor.crossplane.xrds.gitops.${f}`).join('\n  ')}
 
 Please add these to app-config/ingestor.yaml`;
   }
@@ -171,7 +171,7 @@ program
 
       // Load configuration for template context
       const config = loadIngestorConfig();
-      let gitopsConfig = config?.kubernetesIngestor?.crossplane?.xrds?.gitops || {};
+      let gitopsConfig = config?.ingestor?.crossplane?.xrds?.gitops || {};
 
       // Determine which template will be used (check XRD annotations or CLI override)
       let templateToUse = options.template;

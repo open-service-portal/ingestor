@@ -32,12 +32,12 @@ export const catalogModuleIngestor = createBackendModule({
         const taskRunner = scheduler.createScheduledTaskRunner({
           frequency: {
             seconds: config.getOptionalNumber(
-              'kubernetesIngestor.components.taskRunner.frequency',
+              'ingestor.kubernetes.taskRunner.frequency',
             ) ?? 600,
           },
           timeout: {
             seconds: config.getOptionalNumber(
-              'kubernetesIngestor.components.taskRunner.timeout',
+              'ingestor.kubernetes.taskRunner.timeout',
             ) ?? 600,
           },
         });
@@ -45,12 +45,12 @@ export const catalogModuleIngestor = createBackendModule({
         const xrdTaskRunner = scheduler.createScheduledTaskRunner({
           frequency: {
             seconds: config.getOptionalNumber(
-              'kubernetesIngestor.crossplane.xrds.taskRunner.frequency',
+              'ingestor.crossplane.xrds.taskRunner.frequency',
             ) ?? 600,
           },
           timeout: {
             seconds: config.getOptionalNumber(
-              'kubernetesIngestor.crossplane.xrds.taskRunner.timeout',
+              'ingestor.crossplane.xrds.taskRunner.timeout',
             ) ?? 600,
           },
         });
@@ -71,7 +71,7 @@ export const catalogModuleIngestor = createBackendModule({
           resourceFetcher,
         );
 
-        const xrdEnabled = config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.enabled');
+        const xrdEnabled = config.getOptionalBoolean('ingestor.crossplane.xrds.enabled');
         await catalog.addEntityProvider(templateEntityProvider);
         // Only disable if explicitly set to false; default is enabled
         if (xrdEnabled !== false) {

@@ -1,0 +1,177 @@
+# Ingestor Plugin Configuration
+# The ingestor plugin discovers and imports Kubernetes resources into the Backstage catalog
+
+# Ingestor configuration
+ingestor:
+  # ============================================================================
+  # Entity Organization Mappings
+  # ============================================================================
+  # Controls how Backstage entities are organized and grouped for ALL ingested
+  # Kubernetes resources, including:
+  # - Standard K8s resources (Deployments, Services, etc.)
+  # - Crossplane Claims (v1 style with spec.resourceRef)
+  # - Crossplane XRs (v2 style with spec.crossplane)
+  #
+  # These mappings control the Backstage entity namespace and system fields,
+  # which determine how entities are grouped and filtered in the catalog UI.
+  # ============================================================================
+  mappings:
+    # Entity Namespace Mapping
+    # Controls the Backstage entity's metadata.namespace field
+    # This determines entity isolation and access control
+    #
+    # Options:
+    #   'cluster'   - Group by K8s cluster (e.g., entities in namespace "production-cluster")
+    #   'namespace' - Group by K8s namespace (e.g., entities in namespace "backend-team")
+    #   'default'   - All entities in default namespace (flat structure)
+    #
+    # Example: With 'cluster', a Pod in cluster "prod" goes to Backstage namespace "prod"
+    # Example: With 'namespace', a Pod in K8s namespace "api" goes to Backstage namespace "api"
+    namespaceModel: 'namespace'
+
+    # System Name Mapping
+    # Controls the Backstage entity's spec.system field reference
+    # This determines how components are grouped into systems in the catalog
+    #
+    # Options:
+    #   'cluster'           - System name is the cluster name (e.g., "system:rancher-desktop")
+    #   'namespace'         - System name is the K8s namespace (e.g., "system:demo")
+    #   'cluster-namespace' - System name combines both (e.g., "system:prod-backend")
+    #   'default'           - All components belong to "system:default"
+    #
+    # Example: With 'cluster', all resources from "prod" cluster belong to "system:prod"
+    # Example: With 'cluster-namespace', resources from "prod" cluster in "api" namespace
+    #          belong to "system:prod-api"
+    systemModel: 'cluster'
+
+  # ============================================================================
+  # Common Configuration Examples
+  # ============================================================================
+  #
+  # Example 1: Multi-Cluster Setup (Recommended for Production)
+  # ----------------------------------------------------------------------------
+  # Use when managing multiple Kubernetes clusters and want to organize
+  # entities by cluster for clear separation and easier troubleshooting.
+  #
+  # Configuration:
+  #   mappings:
+  #     namespaceModel: 'namespace'  # Isolate by K8s namespace
+  #     systemModel: 'cluster'        # Group by cluster
+  #
+  # Result:
+  #   Cluster: prod-east, Namespace: api, Deployment: payment-service
+  #   → Backstage Entity: component:api/payment-service
+  #   → System Reference: system:prod-east
+  #
+  # Benefits:
+  #   - Clear cluster boundaries in catalog
+  #   - Easy filtering by cluster or namespace
+  #   - Works well with RBAC per namespace
+  #
+  # ----------------------------------------------------------------------------
+  #
+  # Example 2: Team-Based Organization
+  # ----------------------------------------------------------------------------
+  # Use when organizing by team namespaces within a shared cluster.
+  # Teams own their namespace, and all their resources are grouped together.
+  #
+  # Configuration:
+  #   mappings:
+  #     namespaceModel: 'namespace'      # Isolate by team namespace
+  #     systemModel: 'namespace'          # Group by team namespace
+  #
+  # Result:
+  #   Namespace: backend-team, Deployment: api-service
+  #   → Backstage Entity: component:backend-team/api-service
+  #   → System Reference: system:backend-team
+  #
+  # Benefits:
+  #   - Natural team boundaries
+  #   - Self-service per team
+  #   - Simple access control
+  #
+  # ----------------------------------------------------------------------------
+  #
+  # Example 3: Flat Structure (Development/Testing)
+  # ----------------------------------------------------------------------------
+  # Use for simple setups or when you don't need isolation between clusters.
+  # All entities appear in a single flat catalog view.
+  #
+  # Configuration:
+  #   mappings:
+  #     namespaceModel: 'default'  # No isolation
+  #     systemModel: 'default'      # Single system
+  #
+  # Result:
+  #   Any resource → Backstage Entity: component:default/resource-name
+  #   → System Reference: system:default
+  #
+  # Benefits:
+  #   - Simplest possible setup
+  #   - Good for learning/testing
+  #   - No namespace management needed
+  #
+  # ----------------------------------------------------------------------------
+  #
+  # Example 4: Fine-Grained Multi-Cluster
+  # ----------------------------------------------------------------------------
+  # Use when managing multiple clusters AND need cluster+namespace visibility.
+  # Maximum granularity for complex multi-cluster environments.
+  #
+  # Configuration:
+  #   mappings:
+  #     namespaceModel: 'cluster'           # Isolate by cluster
+  #     systemModel: 'cluster-namespace'     # Group by cluster+namespace
+  #
+  # Result:
+  #   Cluster: prod, Namespace: api, Deployment: payment
+  #   → Backstage Entity: component:prod/payment
+  #   → System Reference: system:prod-api
+  #
+  # Benefits:
+  #   - Maximum visibility and control
+  #   - Track resources across cluster+namespace pairs
+  #   - Best for platform teams managing many clusters
+  #
+  # ============================================================================
+
+  # Kubernetes resource ingestion (includes Claims and XRs via auto-detection)
+  kubernetes:
+    enabled: true
+    taskRunner:
+      frequency: 20  # How often to query clusters (in seconds)
+      timeout: 600   # Max processing time
+    excludedNamespaces:
+      - kube-public
+      - kube-system
+      - kube-node-lease
+      - flux-system
+      - crossplane-system
+      - backstage-system
+      - calico-system
+      - calico-apiserver
+      - tigera-operator
+      - ingress-nginx
+      - external-dns
+      - cert-manager
+      - kubernetes-dashboard
+
+  # Crossplane XRD template generation
+  crossplane:
+    enabled: true
+    xrds:
+      enabled: true
+      ingestAllXRDs: true  # Ingest all XRDs with the label
+      # Only ingest XRDs with this label (if ingestAllXRDs is false)
+      # labelSelector: 'openportal.dev/add-to-catalog'
+
+      taskRunner:
+        frequency: 20  # How often to regenerate templates from XRDs (in seconds)
+        timeout: 600   # Max processing time
+
+      # GitOps configuration for template generation
+      gitops:
+        # Repository where XR instances are created via PRs
+        owner: 'open-service-portal'
+        repo: 'catalog-orders'
+        targetBranch: 'main'

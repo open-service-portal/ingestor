@@ -26,7 +26,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     private readonly resourceFetcher: DefaultKubernetesResourceFetcher,
   ) {
     // Initialize transformer with optional custom template directory
-    const templateDir = this.config.getOptionalString('kubernetesIngestor.transform.templateDir');
+    const templateDir = this.config.getOptionalString('ingestor.transform.templateDir');
     this.transformer = new XRDTransformer(templateDir ? { templateDir } : undefined);
   }
 
@@ -60,7 +60,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     }
 
     try {
-      const isCrossplaneEnabled = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.enabled') ?? true;
+      const isCrossplaneEnabled = this.config.getOptionalBoolean('ingestor.crossplane.enabled') ?? true;
 
       if (!isCrossplaneEnabled) {
         await this.connection.applyMutation({
@@ -75,7 +75,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       const allEntities: Entity[] = [];
 
       // Fetch XRDs if enabled
-      if (this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.enabled') !== false) {
+      if (this.config.getOptionalBoolean('ingestor.crossplane.xrds.enabled') !== false) {
         const xrdDataProvider = new XRDDataProvider(
           this.resourceFetcher,
           this.config,
@@ -97,7 +97,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       }
 
       // Fetch CRDs if enabled
-      if (this.config.getOptionalBoolean('kubernetesIngestor.crds.enabled') !== false) {
+      if (this.config.getOptionalBoolean('ingestor.crds.enabled') !== false) {
         const crdDataProvider = new CRDDataProvider(
           this.resourceFetcher,
           this.config,
@@ -160,9 +160,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     // Get GitOps configuration with XRD-level overrides
     // Start with global defaults from app-config
     let gitopsConfig = {
-      owner: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.owner'),
-      repo: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.repo'),
-      targetBranch: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.targetBranch'),
+      owner: this.config.getOptionalString('ingestor.crossplane.xrds.gitops.owner'),
+      repo: this.config.getOptionalString('ingestor.crossplane.xrds.gitops.repo'),
+      targetBranch: this.config.getOptionalString('ingestor.crossplane.xrds.gitops.targetBranch'),
     };
 
     // Check for XRD-level parameter defaults via annotations

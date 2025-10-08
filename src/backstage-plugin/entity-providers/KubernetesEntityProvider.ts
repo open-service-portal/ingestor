@@ -78,9 +78,9 @@ export class KubernetesEntityProvider implements EntityProvider {
       throw new Error('Connection not initialized');
     }
     try {
-      const isCrossplaneEnabled = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.enabled') ?? true;
+      const isCrossplaneEnabled = this.config.getOptionalBoolean('ingestor.crossplane.enabled') ?? true;
 
-      if (this.config.getOptionalBoolean('kubernetesIngestor.components.enabled')) {
+      if (this.config.getOptionalBoolean('ingestor.kubernetes.enabled')) {
         // Initialize providers
         const kubernetesDataProvider = new KubernetesDataProvider(
           this.resourceFetcher,
@@ -166,7 +166,7 @@ export class KubernetesEntityProvider implements EntityProvider {
   private translateKubernetesObjectsToEntities(resource: any): Entity[] {
     const namespace = resource.metadata.namespace || 'default';
     const annotations = resource.metadata.annotations || {};
-    const systemNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.namespaceModel')?.toLowerCase() || 'default';
+    const systemNamespaceModel = this.config.getOptionalString('ingestor.mappings.namespaceModel')?.toLowerCase() || 'default';
     let systemNamespaceValue = '';
     if (systemNamespaceModel === 'cluster') {
       systemNamespaceValue = resource.clusterName;
@@ -175,7 +175,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     } else {
       systemNamespaceValue = 'default';
     }
-    const systemNameModel = this.config.getOptionalString('kubernetesIngestor.mappings.systemModel')?.toLowerCase() || 'namespace';
+    const systemNameModel = this.config.getOptionalString('ingestor.mappings.systemModel')?.toLowerCase() || 'namespace';
     let systemNameValue = '';
     if (systemNameModel === 'cluster') {
       systemNameValue = resource.clusterName;
@@ -190,7 +190,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     } else {
       systemNameValue = 'default';
     }
-    const systemReferencesNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
+    const systemReferencesNamespaceModel = this.config.getOptionalString('ingestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
     let systemReferencesNamespaceValue = '';
     if (systemReferencesNamespaceModel === 'same') {
       systemReferencesNamespaceValue = resource.metadata.name;
@@ -335,7 +335,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     const resourceAnnotations = claim.metadata.annotations || {};
     const customAnnotations = this.extractCustomAnnotations(resourceAnnotations, clusterName);
 
-    const systemNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.namespaceModel')?.toLowerCase() || 'default';
+    const systemNamespaceModel = this.config.getOptionalString('ingestor.mappings.namespaceModel')?.toLowerCase() || 'default';
     let systemNamespaceValue = '';
     if (systemNamespaceModel === 'cluster') {
       systemNamespaceValue = clusterName;
@@ -344,7 +344,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     } else {
       systemNamespaceValue = 'default';
     }
-    const systemNameModel = this.config.getOptionalString('kubernetesIngestor.mappings.systemModel')?.toLowerCase() || 'namespace';
+    const systemNameModel = this.config.getOptionalString('ingestor.mappings.systemModel')?.toLowerCase() || 'namespace';
     let systemNameValue = '';
     if (systemNameModel === 'cluster') {
       systemNameValue = clusterName;
@@ -359,7 +359,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     } else {
       systemNameValue = 'default';
     }
-    const systemReferencesNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
+    const systemReferencesNamespaceModel = this.config.getOptionalString('ingestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
     let systemReferencesNamespaceValue = '';
     if (systemReferencesNamespaceModel === 'same') {
       systemReferencesNamespaceValue = claim.metadata.name;
@@ -436,7 +436,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     const resourceAnnotations = xr.metadata.annotations || {};
     const customAnnotations = this.extractCustomAnnotations(resourceAnnotations, clusterName);
 
-    const systemNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.namespaceModel')?.toLowerCase() || 'default';
+    const systemNamespaceModel = this.config.getOptionalString('ingestor.mappings.namespaceModel')?.toLowerCase() || 'default';
     let systemNamespaceValue = '';
     if (systemNamespaceModel === 'cluster') {
       systemNamespaceValue = clusterName;
@@ -445,7 +445,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     } else {
       systemNamespaceValue = 'default';
     }
-    const systemNameModel = this.config.getOptionalString('kubernetesIngestor.mappings.systemModel')?.toLowerCase() || 'namespace';
+    const systemNameModel = this.config.getOptionalString('ingestor.mappings.systemModel')?.toLowerCase() || 'namespace';
     let systemNameValue = '';
     if (systemNameModel === 'cluster') {
       systemNameValue = clusterName;
@@ -460,7 +460,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     } else {
       systemNameValue = 'default';
     }
-    const systemReferencesNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
+    const systemReferencesNamespaceModel = this.config.getOptionalString('ingestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
     let systemReferencesNamespaceValue = '';
     if (systemReferencesNamespaceModel === 'same') {
       systemReferencesNamespaceValue = xr.metadata.name;
@@ -513,7 +513,7 @@ export class KubernetesEntityProvider implements EntityProvider {
   }
 
   private getAnnotationPrefix(): string {
-    return this.config.getOptionalString('kubernetesIngestor.annotationPrefix') || 'terasky.backstage.io';
+    return this.config.getOptionalString('ingestor.annotationPrefix') || 'terasky.backstage.io';
   }
 
   private findCommonLabels(resource: any): string | null {

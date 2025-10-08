@@ -13,7 +13,7 @@ export class KubernetesDataProvider {
 
   private getAnnotationPrefix(): string {
     return (
-      this.config.getOptionalString('kubernetesIngestor.annotationPrefix') ||
+      this.config.getOptionalString('ingestor.annotationPrefix') ||
       'terasky.backstage.io'
     );
   }
@@ -21,7 +21,7 @@ export class KubernetesDataProvider {
   async fetchKubernetesObjects(): Promise<any[]> {
     try {
       // Get allowed clusters from config or discover them
-      const allowedClusters = this.config.getOptionalStringArray('kubernetesIngestor.allowedClusterNames');
+      const allowedClusters = this.config.getOptionalStringArray('ingestor.allowedClusterNames');
       let clusters: string[] = [];
       
       if (allowedClusters) {
@@ -42,7 +42,7 @@ export class KubernetesDataProvider {
 
       const disableDefaultWorkloadTypes =
         this.config.getOptionalBoolean(
-          'kubernetesIngestor.components.disableDefaultWorkloadTypes',
+          'ingestor.kubernetes.disableDefaultWorkloadTypes',
         ) ?? false;
 
       const defaultWorkloadTypes = [
@@ -71,7 +71,7 @@ export class KubernetesDataProvider {
       const customWorkloadTypes =
         this.config
           .getOptionalConfigArray(
-            'kubernetesIngestor.components.customWorkloadTypes',
+            'ingestor.kubernetes.customWorkloadTypes',
           )
           ?.map(type => ({
             group: type.getString('group'),
@@ -84,7 +84,7 @@ export class KubernetesDataProvider {
         ...customWorkloadTypes,
       ];
 
-      const isCrossplaneEnabled = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.enabled') ?? true;
+      const isCrossplaneEnabled = this.config.getOptionalBoolean('ingestor.crossplane.enabled') ?? true;
 
       // Only add Crossplane-related objects if the feature is enabled
       if (isCrossplaneEnabled) {
@@ -114,9 +114,9 @@ export class KubernetesDataProvider {
         }
       }
 
-      const onlyIngestAnnotatedResources = this.config.getOptionalBoolean('kubernetesIngestor.components.onlyIngestAnnotatedResources') ?? false;
-      const excludedNamespaces = new Set(this.config.getOptionalStringArray('kubernetesIngestor.components.excludedNamespaces') || []);
-      const ingestAllCrossplaneClaims = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.claims.ingestAllClaims') ?? false;
+      const onlyIngestAnnotatedResources = this.config.getOptionalBoolean('ingestor.kubernetes.onlyIngestAnnotatedResources') ?? false;
+      const excludedNamespaces = new Set(this.config.getOptionalStringArray('ingestor.kubernetes.excludedNamespaces') || []);
+      const ingestAllCrossplaneClaims = this.config.getOptionalBoolean('ingestor.crossplane.claims.ingestAllClaims') ?? false;
 
       const allObjects: any[] = [];
 
@@ -136,10 +136,10 @@ export class KubernetesDataProvider {
 
           if (
             this.config.getOptionalConfig(
-              'kubernetesIngestor.genericCRDTemplates.crdLabelSelector',
+              'ingestor.genericCRDTemplates.crdLabelSelector',
             ) ||
             this.config.getOptionalStringArray(
-              'kubernetesIngestor.genericCRDTemplates.crds',
+              'ingestor.genericCRDTemplates.crds',
             )
           ) {
             const genericCRDs = await this.fetchGenericCRDs(clusterName);
@@ -285,7 +285,7 @@ export class KubernetesDataProvider {
   async fetchCRDMapping(): Promise<Record<string, string>> {
     try {
       // Get allowed clusters from config or discover them
-      const allowedClusters = this.config.getOptionalStringArray('kubernetesIngestor.allowedClusterNames');
+      const allowedClusters = this.config.getOptionalStringArray('ingestor.allowedClusterNames');
       let clusters: string[] = [];
       
       if (allowedClusters) {
@@ -370,11 +370,11 @@ export class KubernetesDataProvider {
     clusterName: string,
   ): Promise<{ group: string; version: string; plural: string }[]> {
     const labelSelector = this.config.getOptionalConfig(
-      'kubernetesIngestor.genericCRDTemplates.crdLabelSelector',
+      'ingestor.genericCRDTemplates.crdLabelSelector',
     );
     const specificCRDs =
       this.config.getOptionalStringArray(
-        'kubernetesIngestor.genericCRDTemplates.crds',
+        'ingestor.genericCRDTemplates.crds',
       ) || [];
 
     const crds = await this.resourceFetcher.fetchResources({

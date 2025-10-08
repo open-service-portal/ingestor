@@ -12,7 +12,7 @@ export class CRDDataProvider {
   async fetchCRDObjects(): Promise<any[]> {
     try {
       // Get allowed clusters from config or discover them
-      const allowedClusters = this.config.getOptionalStringArray('kubernetesIngestor.allowedClusterNames');
+      const allowedClusters = this.config.getOptionalStringArray('ingestor.allowedClusterNames');
       let clusters: string[] = [];
       
       if (allowedClusters) {
@@ -32,10 +32,10 @@ export class CRDDataProvider {
       }
 
       const crdTargets = this.config.getOptionalStringArray(
-        'kubernetesIngestor.genericCRDTemplates.crds',
+        'ingestor.genericCRDTemplates.crds',
       );
       const labelSelector = this.config.getOptionalConfig(
-        'kubernetesIngestor.genericCRDTemplates.crdLabelSelector',
+        'ingestor.genericCRDTemplates.crdLabelSelector',
       );
       if (!crdTargets && !labelSelector) {
         return [];

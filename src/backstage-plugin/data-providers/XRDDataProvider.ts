@@ -10,13 +10,13 @@ export class XRDDataProvider {
   ) {}
 
   private getAnnotationPrefix(): string {
-    return this.config.getOptionalString('kubernetesIngestor.annotationPrefix') || 'terasky.backstage.io';
+    return this.config.getOptionalString('ingestor.annotationPrefix') || 'terasky.backstage.io';
   }
 
   async fetchXRDObjects(): Promise<any[]> {
     try {
       // Get allowed clusters from config or discover them
-      const allowedClusters = this.config.getOptionalStringArray('kubernetesIngestor.allowedClusterNames');
+      const allowedClusters = this.config.getOptionalStringArray('ingestor.allowedClusterNames');
       let clusters: string[] = [];
       
       if (allowedClusters) {
@@ -35,7 +35,7 @@ export class XRDDataProvider {
         return [];
       }
 
-      const ingestAllXRDs = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.ingestAllXRDs') ?? false;
+      const ingestAllXRDs = this.config.getOptionalBoolean('ingestor.crossplane.xrds.ingestAllXRDs') ?? false;
       let allFetchedObjects: any[] = [];
       const xrdMap = new Map<string, any>();
 
