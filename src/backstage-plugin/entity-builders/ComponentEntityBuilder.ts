@@ -31,7 +31,7 @@ export class ComponentEntityBuilder {
     _systemReferencesNamespace?: string,
     prefix: string = 'backstage.io',
     nameModel: string = 'name-namespace-cluster',
-    titleModel?: string,
+    titleModel: string = 'name',
   ): this {
     const annotations = resource.metadata?.annotations || {};
     const labels = resource.metadata?.labels || {};
@@ -60,11 +60,11 @@ export class ComponentEntityBuilder {
       this.entity.spec.system = systemName;
     }
 
-    // Set title from annotation, titleModel, or skip
+    // Set title from annotation or titleModel
     const annotationTitle = annotations[`${prefix}/title`] || annotations['backstage.io/title'];
     if (annotationTitle) {
       this.entity.metadata!.title = annotationTitle;
-    } else if (titleModel) {
+    } else {
       this.entity.metadata!.title = this.buildEntityTitle(
         resourceName,
         namespace,

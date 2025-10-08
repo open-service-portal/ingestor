@@ -169,7 +169,7 @@ export class KubernetesEntityProvider implements EntityProvider {
 
     // Get entity naming configuration
     const nameModel = this.config.getOptionalString('ingestor.mappings.nameModel') || 'name-namespace-cluster';
-    const titleModel = this.config.getOptionalString('ingestor.mappings.titleModel');
+    const titleModel = this.config.getOptionalString('ingestor.mappings.titleModel') || 'name';
 
     const systemNamespaceModel = this.config.getOptionalString('ingestor.mappings.namespaceModel')?.toLowerCase() || 'default';
     let systemNamespaceValue = '';
@@ -307,7 +307,7 @@ export class KubernetesEntityProvider implements EntityProvider {
 
     // Get entity naming configuration
     const nameModel = this.config.getOptionalString('ingestor.mappings.nameModel') || 'name-namespace-cluster';
-    const titleModel = this.config.getOptionalString('ingestor.mappings.titleModel');
+    const titleModel = this.config.getOptionalString('ingestor.mappings.titleModel') || 'name';
 
     // Extract CR values
     const [crGroup, crVersion] = claim.apiVersion.split('/');
@@ -421,7 +421,7 @@ export class KubernetesEntityProvider implements EntityProvider {
 
     // Get entity naming configuration
     const nameModel = this.config.getOptionalString('ingestor.mappings.nameModel') || 'name-namespace-cluster';
-    const titleModel = this.config.getOptionalString('ingestor.mappings.titleModel');
+    const titleModel = this.config.getOptionalString('ingestor.mappings.titleModel') || 'name';
     const kind = xr.kind;
     const scope = compositeKindLookup[lookupKey]?.scope || compositeKindLookup[lookupKeyLower]?.scope;
     const crossplaneVersion = 'v2';

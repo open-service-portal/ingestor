@@ -44,6 +44,41 @@ ingestor:
     #          belong to "system:prod-api"
     systemModel: 'cluster'
 
+    # Entity Name Mapping
+    # Controls the Backstage entity's metadata.name field format
+    # This determines the unique identifier for each entity
+    #
+    # Options:
+    #   'name'                   - Just the resource name (e.g., "payment-service")
+    #   'name-cluster'           - Name + cluster (e.g., "payment-service-prod")
+    #   'name-namespace'         - Name + namespace (e.g., "payment-service-backend")
+    #   'name-namespace-cluster' - Name + namespace + cluster (e.g., "payment-service-backend-prod")
+    #
+    # Example: With 'name-cluster', a deployment "api" in cluster "prod" becomes "api-prod"
+    # Example: With 'name-namespace-cluster', it becomes "api-default-prod"
+    #
+    # NOTE: Choose wisely! Shorter names are cleaner but may conflict across namespaces/clusters.
+    #       Longer names are unique but verbose. Consider your multi-cluster setup.
+    nameModel: 'name-namespace-cluster'
+
+    # Entity Title Mapping
+    # Controls automatic title generation when no backstage.io/title annotation exists
+    # Annotations always take precedence over titleModel when present
+    #
+    # Options:
+    #   'name'              - Just the resource name (e.g., "payment-service")
+    #   'name-cluster'      - Name with cluster (e.g., "payment-service (prod)")
+    #   'name-namespace'    - Name with namespace (e.g., "payment-service (backend)")
+    #   'kind-name'         - Kind prefix (e.g., "Deployment: payment-service")
+    #   'kind-name-cluster' - Kind + name + cluster (e.g., "Deployment: payment-service (prod)")
+    #
+    # Example: With 'kind-name-cluster', a Deployment "api" in "prod" shows as "Deployment: api (prod)"
+    # Example: With 'name', resources show with their simple name as the title
+    #
+    # NOTE: Default is 'name' for clean, simple titles. Use other models for more context.
+    #       Teams can always override with backstage.io/title annotations on resources.
+    titleModel: 'name'
+
   # ============================================================================
   # Common Configuration Examples
   # ============================================================================
