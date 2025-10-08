@@ -1,0 +1,151 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: databases-team-com
+  title: Team Database
+  description: Create and manage TeamDatabase resources
+  tags:
+    - crossplane
+    - team-com
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: databases.team.com
+    crossplane.io/xrd-group: team.com
+spec:
+  owner: platform-team
+  type: crossplane-resource
+  parameters:
+    - title: GitOps Configuration
+      description: Configure GitOps repository settings for PR-based deployment
+      properties:
+        gitopsOwner:
+          title: GitHub Organization/Owner
+          type: string
+          description: GitHub organization or user for the GitOps repository
+          default: database-team
+          ui:help: 'Current default: database-team'
+        gitopsRepo:
+          title: Repository Name
+          type: string
+          description: GitOps repository name where manifests will be stored
+          default: database-orders
+          ui:help: 'Current default: database-orders'
+        gitopsTargetBranch:
+          title: Target Branch
+          type: string
+          description: Target branch for pull requests
+          default: staging
+          ui:help: 'Current default: staging'
+  steps:
+    - id: generateManifest
+      name: Generate Kubernetes Resource Manifest
+      action: terasky:claim-template
+      input:
+        parameters: ${{ parameters }}
+        nameParam: name
+        namespaceParam: namespace
+        ownerParam: owner
+        excludeParams:
+          - owner
+          - name
+          - namespace
+          - gitopsOwner
+          - gitopsRepo
+          - gitopsTargetBranch
+        apiVersion: team.com/v1alpha1
+        kind: TeamDatabase
+        clusters:
+          - rancher-desktop
+        removeEmptyParams: true
+    - id: create-pull-request
+      name: Create Pull Request
+      action: publish:github:pull-request
+      input:
+        repoUrl: >-
+          github.com?owner=${{ parameters.gitopsOwner ||
+          '{{config.gitops.ordersRepo.owner}}' }}& repo=${{
+          parameters.gitopsRepo || '{{config.gitops.ordersRepo.repo}}' }}
+        branchName: ${{ "create-" + parameters.name + "-resource" }}
+        title: ${{ "Create " + parameters.name + " Resource" }}
+        description: Create TeamDatabase resource ${{ parameters.name }}
+        targetBranchName: >-
+          ${{ parameters.gitopsTargetBranch ||
+          '{{config.gitops.ordersRepo.targetBranch}}' }}
+      output:
+        links:
+          - title: View Pull Request
+            icon: github
+            url: ${{ steps['create-pull-request'].output.remoteUrl }}
+        text:
+          - title: Pull Request Number
+            content: ${{ steps['create-pull-request'].output.pullRequestNumber }}
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: databases-team-com-api
+  title: Team Database API
+  description: API specification for TeamDatabase
+  tags:
+    - crossplane
+    - ingestor
+    - team-com
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: databases.team.com
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: platform-team
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: TeamDatabase API
+      version: v1alpha1
+      description: OpenAPI specification for TeamDatabase
+    paths:
+      /databases:
+        get:
+          summary: List databases
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create TeamDatabase
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: TeamDatabase configuration
+                      properties:
+                        engine:
+                          type: string
+                        environment:
+                          type: string
+                      required:
+                        - engine
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created
+

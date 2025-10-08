@@ -9,12 +9,25 @@ templates/
 ├── backstage/          # Main Backstage Template entity structure
 │   └── default.hbs     # Default template structure
 ├── parameters/         # Scaffolder form parameters
-│   └── default.hbs     # Default parameters extraction
+│   ├── default.hbs     # Scope-aware parameters (works for both namespaced and cluster-scoped)
+│   └── gitops.hbs      # GitOps parameters with runtime override fields
 ├── steps/              # Scaffolder workflow steps
-│   └── default.hbs     # Default kubernetes:apply workflow
+│   ├── default.hbs     # Direct kube:apply workflow (works for both scopes)
+│   └── gitops.hbs      # GitOps PR workflow with three-level config support
 └── api/                # API documentation entities
     └── default.hbs     # Default OpenAPI documentation
 ```
+
+### Recent Updates
+
+- **Three-Level Configuration**: User parameters → XRD annotations → Global config hierarchy
+- **GitOps Parameters Template**: New `gitops.hbs` enables runtime GitOps configuration overrides
+- **Unified Templates**: `default.hbs` templates handle both namespaced and cluster-scoped resources
+- **GitOps Workflow**: `gitops.hbs` with three-level config fallback support
+- **Configuration-Driven**: Templates use configuration from `app-config/ingestor.yaml`
+- **XRD-Level Overrides**: `openportal.dev/parameter.*` annotations for per-template defaults
+- **TechDocs Integration**: Automatic `backstage.io/techdocs-ref` annotation passthrough
+- **Triple-Brace Fix**: Backstage variables use `{{{...}}}` to prevent HTML escaping
 
 ## How Templates Work
 
@@ -37,9 +50,9 @@ metadata:
   name: example.openportal.dev
   annotations:
     backstage.io/template: "default"              # Main template
-    backstage.io/api-template: "default"          # API docs
-    backstage.io/parameters-template: "default"   # Form fields
-    backstage.io/steps-template: "default"        # Workflow
+    backstage.io/template-api: "default"          # API docs
+    backstage.io/template-parameters: "default"   # Form fields
+    backstage.io/template-steps: "default"        # Workflow
 ```
 
 ### 3. Available Variables
@@ -50,9 +63,18 @@ All templates have access to:
 {
   xrd: any,                    // Full XRD object
   metadata: {                  // Extraction metadata
-    cluster?: string,
+    cluster?: string,          // Current kubectl context (auto-detected)
     namespace?: string,
     path?: string,
+  },
+  config: {                    // Configuration from app-config/ingestor.yaml
+    gitops: {                  // GitOps workflow settings
+      ordersRepo: {
+        owner: string,         // GitHub org/user
+        repo: string,          // Repository name
+        targetBranch: string,  // Target branch (e.g., 'main')
+      }
+    }
   },
   helpers: {                   // Utility functions
     slugify,
@@ -74,6 +96,94 @@ Additionally, the main template receives:
   stepsRendered: string,       // Pre-rendered steps section
 }
 ```
+
+### 4. Configuration
+
+Templates can access configuration from `app-config/ingestor.yaml`:
+
+```yaml
+# app-config/ingestor.yaml
+kubernetesIngestor:
+  crossplane:
+    xrds:
+      gitops:
+        ordersRepo:
+          owner: 'your-org'
+          repo: 'catalog-orders'
+          targetBranch: 'main'
+```
+
+Access in templates:
+
+```handlebars
+repoUrl: github.com?owner={{config.gitops.ordersRepo.owner}}&repo={{config.gitops.ordersRepo.repo}}
+targetBranchName: {{config.gitops.ordersRepo.targetBranch}}
+```
+
+**Validation**: GitOps templates (those with "gitops" in the name) require this configuration. The CLI validates and fails fast with helpful error messages if config is missing.
+
+### 5. XRD-Level Configuration Overrides
+
+Individual XRDs can override global GitOps configuration using parameter annotations:
+
+```yaml
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: databases.example.com
+  annotations:
+    openportal.dev/template-steps: "gitops"
+
+    # Override global GitOps settings for this XRD only
+    openportal.dev/parameter.gitopsOwner: "database-team"
+    openportal.dev/parameter.gitopsRepo: "database-orders"
+    openportal.dev/parameter.gitopsTargetBranch: "staging"
+```
+
+**Pattern**: `openportal.dev/parameter.<parameterName>: <value>`
+
+This sets default values for template parameters. These annotations:
+- Override global config from `app-config/ingestor.yaml`
+- Are overridden by user input in the UI form
+- Work for ANY parameter, not just GitOps config
+
+**Configuration Hierarchy** (highest to lowest priority):
+1. **User parameter input** (runtime, via UI form) - **HIGHEST** priority, ultimate user control
+2. **XRD annotation** (`openportal.dev/parameter.*`) - Per-template parameter defaults
+3. **Global config** (`app-config/ingestor.yaml`) - **LOWEST** priority, default fallback
+
+**Use Cases:**
+- **User parameters**: Ad-hoc testing, personal forks, temporary branches
+- **XRD annotation**: Team-specific repositories, resource-type workflows
+- **Global config**: Organization-wide defaults
+
+### 6. User Parameter Overrides
+
+To enable users to override GitOps configuration at runtime, use the `gitops` parameters template:
+
+```yaml
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: example.openportal.dev
+  annotations:
+    openportal.dev/template-steps: "gitops"
+    openportal.dev/template-parameters: "gitops"  # Enable parameter overrides
+```
+
+This adds an "Advanced GitOps Configuration" section to the form with:
+- `gitopsOwner` - Override GitHub organization/user
+- `gitopsRepo` - Override repository name
+- `gitopsTargetBranch` - Override target branch
+
+Users can leave these empty to use defaults, or override them for specific needs (testing, personal forks, etc.).
+
+**Benefits:**
+- Three-level configuration hierarchy with clear precedence
+- Users have ultimate control when needed
+- Templates define sensible per-resource defaults
+- Global config provides organization-wide consistency
+- Testable at all levels (CLI, XRD annotation, runtime parameters)
 
 ## Creating Custom Templates
 
@@ -115,41 +225,55 @@ kind: CompositeResourceDefinition
 metadata:
   name: databases.platform.io
   annotations:
-    backstage.io/parameters-template: "database"
+    backstage.io/template-parameters: "database"
 ```
 
-### Example: Custom GitOps Steps
+### Example: GitOps PR Workflow
 
-Create `steps/gitops.hbs`:
+The built-in `gitops.hbs` template demonstrates the GitOps pattern:
 
 ```handlebars
-    - id: create-resource
-      name: Create {{xrd.spec.names.kind}}
-      action: kubernetes:apply
+    - id: generateManifest
+      name: Generate Kubernetes Resource Manifest
+      action: terasky:claim-template
       input:
-        manifest: |
-          apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
-          kind: {{xrd.spec.names.kind}}
-          metadata:
-            name: {{backstageVar "parameters.name"}}
-            namespace: {{backstageVar "parameters.namespace"}}
-          spec: {{backstageVar "parameters"}}
+        parameters: {{backstageVar "parameters"}}
+        nameParam: name
+        namespaceParam: {{#if (eq xrd.spec.scope "Namespaced")}}'namespace'{{else}}''{{/if}}
+        ownerParam: owner
+        excludeParams:
+          - owner
+          - name
+          - namespace
+        apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+        kind: {{xrd.spec.names.kind}}
+        clusters: ['{{metadata.cluster}}']
+        removeEmptyParams: true
 
-    - id: create-pr
+    - id: create-pull-request
       name: Create Pull Request
       action: publish:github:pull-request
       input:
-        repoUrl: {{backstageVar "parameters.repoUrl"}}
-        branchName: {{backstageVar "parameters.name"}}-config
-        title: Add {{xrd.spec.names.kind}} resource
-        description: Creates a new {{xrd.spec.names.kind}} resource
+        repoUrl: github.com?owner={{config.gitops.ordersRepo.owner}}&repo={{config.gitops.ordersRepo.repo}}
+        branchName: {{{backstageVar "\"create-\" + parameters.name + \"-resource\""}}}
+        title: {{{backstageVar "\"Create \" + parameters.name + \" Resource\""}}}
+        description: {{{backstageVar "\"Create \" + xrd.spec.names.kind + \" resource \" + parameters.name"}}}
+        targetBranchName: {{config.gitops.ordersRepo.targetBranch}}
+```
 
-    - id: register
-      name: Register in Catalog
-      action: catalog:register
-      input:
-        repoContentsUrl: {{backstageVar "steps.create-pr.output.remoteUrl"}}
-        catalogInfoPath: /catalog-info.yaml
+**Key Features:**
+- Uses `terasky:claim-template` for manifest generation
+- Gets repo config from `app-config/ingestor.yaml`
+- Auto-detects cluster from kubectl context
+- Handles both namespaced and cluster-scoped resources
+- Creates PRs to catalog-orders repository
+
+Use in your XRD:
+
+```yaml
+metadata:
+  annotations:
+    openportal.dev/template-steps: "gitops"
 ```
 
 ## Helper Functions
@@ -210,17 +334,31 @@ YAML requires precise indentation. Sub-templates should include their indentatio
           type: string
 ```
 
-### 2. Use Triple-Braces for Pre-Rendered Content
+### 2. HTML Escaping: When to Use Triple-Braces
 
-When embedding pre-rendered templates, use `{{{ }}}` to prevent escaping:
+**Important**: Handlebars escapes HTML entities by default with `{{...}}`. Use `{{{...}}}` (triple braces) to output raw values.
 
+**Use triple-braces for:**
+- Backstage variables containing quotes: `{{{backstageVar "\"text\""}}}`
+- Pre-rendered template content: `{{{parametersRendered}}}`
+- Any value that should not be HTML-escaped
+
+**Example - Correct:**
 ```handlebars
-  parameters:
-{{{parametersRendered}}}
-
-  steps:
-{{{stepsRendered}}}
+branchName: {{{backstageVar "\"create-\" + parameters.name"}}}
+# Output: branchName: ${{ "create-" + parameters.name }}
 ```
+
+**Example - Incorrect:**
+```handlebars
+branchName: {{backstageVar "\"create-\" + parameters.name"}}
+# Output: branchName: ${{ &quot;create-&quot; + parameters.name }}  ❌
+```
+
+**Use double-braces for:**
+- Simple property access: `{{config.gitops.ordersRepo.owner}}`
+- XRD fields: `{{xrd.spec.group}}`
+- Values without special characters
 
 ### 3. Test Your Templates
 

@@ -1,0 +1,43 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: databases.team.com
+  annotations:
+    backstage.io/description: "Database with parameter defaults via annotations"
+    openportal.dev/template-steps: "gitops"
+    openportal.dev/template-parameters: "gitops"
+    # Parameter defaults - these override global config
+    openportal.dev/parameter.gitopsOwner: "database-team"
+    openportal.dev/parameter.gitopsRepo: "database-orders"
+    openportal.dev/parameter.gitopsTargetBranch: "staging"
+    openportal.dev/parameter.environment: "production"
+spec:
+  group: team.com
+  names:
+    kind: TeamDatabase
+    plural: databases
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                engine:
+                  type: string
+                  enum:
+                    - postgres
+                    - mysql
+                environment:
+                  type: string
+                  enum:
+                    - development
+                    - staging
+                    - production
+              required:
+                - engine

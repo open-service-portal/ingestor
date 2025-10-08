@@ -54,9 +54,26 @@ kubernetesIngestor:
     enabled: true
     xrds:
       enabled: true
+      # GitOps configuration for template generation
+      gitops:
+        ordersRepo:
+          owner: 'your-org'
+          repo: 'catalog-orders'
+          targetBranch: 'main'
 ```
 
 **[→ Full Configuration Reference](./docs/configuration.md)**
+
+### GitOps Workflow
+
+The plugin supports PR-based resource creation via the `gitops` step template:
+
+- **Configuration**: Repository settings in `app-config.yaml` under `kubernetesIngestor.crossplane.xrds.gitops`
+- **Auto-detection**: Automatically detects current kubectl context for cluster targeting
+- **Validation**: Fails fast with helpful messages if configuration is missing
+- **Template**: Use annotation `openportal.dev/template-steps: "gitops"` on your XRD
+
+See [Template Development Guide](./templates/README.md) for details.
 
 ## Documentation
 
