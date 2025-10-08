@@ -8,6 +8,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import { execSync } from 'child_process';
 import { transform } from '../lib/transform';
 import { XRDExtractData } from '../lib/types';
 
@@ -26,6 +27,93 @@ const colors = {
 function log(message: string, color?: keyof typeof colors) {
   const colorCode = color ? colors[color] : colors.reset;
   console.error(`${colorCode}${message}${colors.reset}`);
+}
+
+/**
+ * Get current kubectl context
+ */
+function getCurrentKubectlContext(): string | undefined {
+  try {
+    const context = execSync('kubectl config current-context', {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'] // Suppress stderr
+    }).trim();
+    return context;
+  } catch {
+    // kubectl not available or no context set
+    return undefined;
+  }
+}
+
+/**
+ * Load configuration from app-config/ingestor.yaml
+ * Tries multiple paths relative to the plugin package
+ */
+function loadIngestorConfig(): any {
+  // Try to find app-config/ingestor.yaml relative to the plugin package
+  // From plugin root: ../../app-config/ingestor.yaml (monorepo structure)
+  const possiblePaths = [
+    path.join(__dirname, '../../../app-config/ingestor.yaml'), // From dist/xrd-transform/cli
+    path.join(__dirname, '../../../../app-config/ingestor.yaml'), // From src/xrd-transform/cli
+    path.join(process.cwd(), '../../app-config/ingestor.yaml'), // From plugin directory (wrapper script)
+    path.join(process.cwd(), 'app-config/ingestor.yaml'), // From app-portal root
+  ];
+
+  for (const configPath of possiblePaths) {
+    if (fs.existsSync(configPath)) {
+      try {
+        const configContent = fs.readFileSync(configPath, 'utf-8');
+        return yaml.load(configContent);
+      } catch (error) {
+        log(`Warning: Found config at ${configPath} but failed to load: ${error}`, 'yellow');
+      }
+    }
+  }
+
+  // Return empty config if not found
+  return {};
+}
+
+/**
+ * Validate GitOps configuration for templates that need it
+ * Returns error message if validation fails, undefined if valid
+ */
+function validateGitOpsConfig(config: any, templateName: string): string | undefined {
+  // Only validate for gitops-related templates
+  if (!templateName || !templateName.includes('gitops')) {
+    return undefined;
+  }
+
+  const gitopsConfig = config?.kubernetesIngestor?.crossplane?.xrds?.gitops;
+
+  if (!gitopsConfig) {
+    return `GitOps template requires configuration in app-config/ingestor.yaml under:
+  kubernetesIngestor.crossplane.xrds.gitops
+
+Example:
+  kubernetesIngestor:
+    crossplane:
+      xrds:
+        gitops:
+          ordersRepo:
+            owner: 'your-org'
+            repo: 'catalog-orders'
+            targetBranch: 'main'`;
+  }
+
+  const missing: string[] = [];
+  if (!gitopsConfig.ordersRepo?.owner) missing.push('ordersRepo.owner');
+  if (!gitopsConfig.ordersRepo?.repo) missing.push('ordersRepo.repo');
+  if (!gitopsConfig.ordersRepo?.targetBranch) missing.push('ordersRepo.targetBranch');
+
+  if (missing.length > 0) {
+    return `GitOps configuration is incomplete. Missing required fields:
+  ${missing.map(f => `- kubernetesIngestor.crossplane.xrds.gitops.${f}`).join('\n  ')}
+
+Please add these to app-config/ingestor.yaml`;
+  }
+
+  return undefined;
 }
 
 // Default to built-in templates (works for both ts-node and compiled)
@@ -82,12 +170,70 @@ program
       // Determine effective template name (override or default)
       const effectiveTemplateName = options.template || 'default';
 
+      // Load configuration for template context
+      const config = loadIngestorConfig();
+      let gitopsConfig = config?.kubernetesIngestor?.crossplane?.xrds?.gitops || {};
+
+      // Determine which template will be used (check XRD annotations or CLI override)
+      let templateToUse = options.template;
+      if (!templateToUse && xrdData.length > 0) {
+        // Check first XRD for steps template annotation
+        const firstXrd = xrdData[0].xrd;
+        templateToUse = firstXrd?.metadata?.annotations?.['openportal.dev/template-steps'];
+      }
+
+      // Check for XRD-level parameter defaults via annotations
+      // Pattern: openportal.dev/parameter.<paramName>: <value>
+      if (xrdData.length > 0) {
+        const firstXrd = xrdData[0].xrd;
+        const annotations = firstXrd?.metadata?.annotations || {};
+        const parameterDefaults: Record<string, string> = {};
+
+        for (const [key, value] of Object.entries(annotations)) {
+          if (key.startsWith('openportal.dev/parameter.')) {
+            const paramName = key.replace('openportal.dev/parameter.', '');
+            parameterDefaults[paramName] = value as string;
+          }
+        }
+
+        // Apply parameter defaults to GitOps config (XRD annotations take precedence)
+        if (parameterDefaults.gitopsOwner) {
+          gitopsConfig.ordersRepo = gitopsConfig.ordersRepo || {};
+          gitopsConfig.ordersRepo.owner = parameterDefaults.gitopsOwner;
+        }
+        if (parameterDefaults.gitopsRepo) {
+          gitopsConfig.ordersRepo = gitopsConfig.ordersRepo || {};
+          gitopsConfig.ordersRepo.repo = parameterDefaults.gitopsRepo;
+        }
+        if (parameterDefaults.gitopsTargetBranch) {
+          gitopsConfig.ordersRepo = gitopsConfig.ordersRepo || {};
+          gitopsConfig.ordersRepo.targetBranch = parameterDefaults.gitopsTargetBranch;
+        }
+
+        if (Object.keys(parameterDefaults).length > 0 && options.verbose) {
+          log(`Using XRD parameter defaults: ${JSON.stringify(parameterDefaults)}`, 'blue');
+        }
+      }
+
+      // Validate configuration for gitops templates
+      const configError = validateGitOpsConfig(config, templateToUse || '');
+      if (configError) {
+        log('Configuration Error:', 'red');
+        log(configError, 'yellow');
+        process.exit(1);
+      }
+
       const result = await transform(xrdData, {
         templateDir,
         templateName: options.template,  // CLI override for template name
         format: options.format,
         verbose: options.verbose,
         validate: options.validate,
+        context: {
+          config: {
+            gitops: gitopsConfig
+          }
+        }
       });
 
       if (!result.success) {
@@ -192,21 +338,36 @@ function discoverXRDs(dirPath: string): string[] {
 async function readInput(input: string | undefined, options: any): Promise<XRDExtractData[]> {
   const results: XRDExtractData[] = [];
 
+  // Get current kubectl context for metadata
+  const currentCluster = getCurrentKubectlContext();
+
   if (!input || input === '-') {
     // Read from stdin
     const stdinData = await readStdin();
     const parsed = parseInput(stdinData);
 
     if (isXRDExtractData(parsed)) {
+      // Add cluster metadata if not present
+      if (currentCluster && !parsed.metadata?.cluster) {
+        parsed.metadata = { ...parsed.metadata, cluster: currentCluster };
+      }
       results.push(parsed);
     } else if (Array.isArray(parsed)) {
-      results.push(...parsed.filter(isXRDExtractData));
+      const filtered = parsed.filter(isXRDExtractData);
+      // Add cluster metadata to each
+      filtered.forEach(item => {
+        if (currentCluster && !item.metadata?.cluster) {
+          item.metadata = { ...item.metadata, cluster: currentCluster };
+        }
+      });
+      results.push(...filtered);
     } else {
       // Assume it's a raw XRD
       results.push({
         source: 'stdin',
         timestamp: new Date().toISOString(),
         xrd: parsed,
+        metadata: { cluster: currentCluster },
       });
     }
   } else if (fs.existsSync(input)) {
@@ -225,6 +386,10 @@ async function readInput(input: string | undefined, options: any): Promise<XRDEx
         const parsed = parseInput(content);
 
         if (isXRDExtractData(parsed)) {
+          // Add cluster metadata if not present
+          if (currentCluster && !parsed.metadata?.cluster) {
+            parsed.metadata = { ...parsed.metadata, cluster: currentCluster };
+          }
           results.push(parsed);
         } else {
           // Assume it's a raw XRD
@@ -232,7 +397,7 @@ async function readInput(input: string | undefined, options: any): Promise<XRDEx
             source: 'file',
             timestamp: new Date().toISOString(),
             xrd: parsed,
-            metadata: { path: filePath },
+            metadata: { path: filePath, cluster: currentCluster },
           });
         }
       }
@@ -242,16 +407,27 @@ async function readInput(input: string | undefined, options: any): Promise<XRDEx
       const parsed = parseInput(content);
 
       if (isXRDExtractData(parsed)) {
+        // Add cluster metadata if not present
+        if (currentCluster && !parsed.metadata?.cluster) {
+          parsed.metadata = { ...parsed.metadata, cluster: currentCluster };
+        }
         results.push(parsed);
       } else if (Array.isArray(parsed)) {
-        results.push(...parsed.filter(isXRDExtractData));
+        const filtered = parsed.filter(isXRDExtractData);
+        // Add cluster metadata to each
+        filtered.forEach(item => {
+          if (currentCluster && !item.metadata?.cluster) {
+            item.metadata = { ...item.metadata, cluster: currentCluster };
+          }
+        });
+        results.push(...filtered);
       } else {
         // Assume it's a raw XRD
         results.push({
           source: 'file',
           timestamp: new Date().toISOString(),
           xrd: parsed,
-          metadata: { path: input },
+          metadata: { path: input, cluster: currentCluster },
         });
       }
     }
@@ -431,7 +607,7 @@ async function writeOutput(entities: any[], options: any): Promise<void> {
  * Watch directory for changes
  */
 function watchDirectory(dir: string, options: any): void {
-  fs.watch(dir, async (eventType, filename) => {
+  fs.watch(dir, async (_eventType, filename) => {
     if (filename && (filename.endsWith('.json') || filename.endsWith('.yaml') || filename.endsWith('.yml'))) {
       log(`Change detected: ${filename}`, 'yellow');
 
