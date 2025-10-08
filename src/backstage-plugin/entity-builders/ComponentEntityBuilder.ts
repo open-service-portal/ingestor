@@ -30,13 +30,22 @@ export class ComponentEntityBuilder {
     systemName?: string,
     _systemReferencesNamespace?: string,
     prefix: string = 'backstage.io',
+    nameModel: string = 'name-namespace-cluster',
+    titleModel?: string,
   ): this {
     const annotations = resource.metadata?.annotations || {};
     const labels = resource.metadata?.labels || {};
-
-    // Set entity name
     const namespace = resource.metadata?.namespace || 'default';
-    this.entity.metadata!.name = `${resource.metadata.name}-${namespace}-${clusterName}`;
+    const resourceName = resource.metadata.name;
+    const kind = resource.kind;
+
+    // Set entity name based on nameModel
+    this.entity.metadata!.name = this.buildEntityName(
+      resourceName,
+      namespace,
+      clusterName,
+      nameModel
+    );
 
     // Set basic spec fields
     this.entity.spec = {
@@ -51,9 +60,18 @@ export class ComponentEntityBuilder {
       this.entity.spec.system = systemName;
     }
 
-    // Set title from annotation or resource name
-    if (annotations[`${prefix}/title`] || annotations['backstage.io/title']) {
-      this.entity.metadata!.title = annotations[`${prefix}/title`] || annotations['backstage.io/title'];
+    // Set title from annotation, titleModel, or skip
+    const annotationTitle = annotations[`${prefix}/title`] || annotations['backstage.io/title'];
+    if (annotationTitle) {
+      this.entity.metadata!.title = annotationTitle;
+    } else if (titleModel) {
+      this.entity.metadata!.title = this.buildEntityTitle(
+        resourceName,
+        namespace,
+        clusterName,
+        kind,
+        titleModel
+      );
     }
 
     // Set description
@@ -68,6 +86,54 @@ export class ComponentEntityBuilder {
     }
 
     return this;
+  }
+
+  /**
+   * Build entity name based on nameModel configuration
+   */
+  private buildEntityName(
+    name: string,
+    namespace: string,
+    cluster: string,
+    model: string
+  ): string {
+    switch (model.toLowerCase()) {
+      case 'name':
+        return name;
+      case 'name-cluster':
+        return `${name}-${cluster}`;
+      case 'name-namespace':
+        return `${name}-${namespace}`;
+      case 'name-namespace-cluster':
+      default:
+        return `${name}-${namespace}-${cluster}`;
+    }
+  }
+
+  /**
+   * Build entity title based on titleModel configuration
+   */
+  private buildEntityTitle(
+    name: string,
+    namespace: string,
+    cluster: string,
+    kind: string,
+    model: string
+  ): string {
+    switch (model.toLowerCase()) {
+      case 'name':
+        return name;
+      case 'name-cluster':
+        return `${name} (${cluster})`;
+      case 'name-namespace':
+        return `${name} (${namespace})`;
+      case 'kind-name':
+        return `${kind}: ${name}`;
+      case 'kind-name-cluster':
+        return `${kind}: ${name} (${cluster})`;
+      default:
+        return name;
+    }
   }
 
   /**
@@ -165,6 +231,8 @@ export class ComponentEntityBuilder {
     systemName?: string,
     systemReferencesNamespace?: string,
     prefix: string = 'backstage.io',
+    nameModel: string = 'name-namespace-cluster',
+    titleModel?: string,
   ): this {
     return this.withKubernetesMetadata(
       claim,
@@ -172,7 +240,9 @@ export class ComponentEntityBuilder {
       systemNamespace,
       systemName,
       systemReferencesNamespace,
-      prefix
+      prefix,
+      nameModel,
+      titleModel
     );
   }
 
@@ -186,6 +256,8 @@ export class ComponentEntityBuilder {
     systemName?: string,
     systemReferencesNamespace?: string,
     prefix: string = 'backstage.io',
+    nameModel: string = 'name-namespace-cluster',
+    titleModel?: string,
   ): this {
     return this.withKubernetesMetadata(
       xr,
@@ -193,7 +265,9 @@ export class ComponentEntityBuilder {
       systemNamespace,
       systemName,
       systemReferencesNamespace,
-      prefix
+      prefix,
+      nameModel,
+      titleModel
     );
   }
 

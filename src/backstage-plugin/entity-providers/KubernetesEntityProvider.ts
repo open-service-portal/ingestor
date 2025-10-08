@@ -166,6 +166,11 @@ export class KubernetesEntityProvider implements EntityProvider {
   private translateKubernetesObjectsToEntities(resource: any): Entity[] {
     const namespace = resource.metadata.namespace || 'default';
     const annotations = resource.metadata.annotations || {};
+
+    // Get entity naming configuration
+    const nameModel = this.config.getOptionalString('ingestor.mappings.nameModel') || 'name-namespace-cluster';
+    const titleModel = this.config.getOptionalString('ingestor.mappings.titleModel');
+
     const systemNamespaceModel = this.config.getOptionalString('ingestor.mappings.namespaceModel')?.toLowerCase() || 'default';
     let systemNamespaceValue = '';
     if (systemNamespaceModel === 'cluster') {
@@ -260,7 +265,9 @@ export class KubernetesEntityProvider implements EntityProvider {
         systemNamespaceValue,
         systemNameValue,
         systemReferencesNamespaceValue,
-        prefix
+        prefix,
+        nameModel,
+        titleModel
       )
       .withLinks(this.parseBackstageLinks(resource.metadata.annotations || {}))
       .withAnnotations({
@@ -297,6 +304,10 @@ export class KubernetesEntityProvider implements EntityProvider {
     }
     const prefix = this.getAnnotationPrefix();
     const annotations = claim.metadata.annotations || {};
+
+    // Get entity naming configuration
+    const nameModel = this.config.getOptionalString('ingestor.mappings.nameModel') || 'name-namespace-cluster';
+    const titleModel = this.config.getOptionalString('ingestor.mappings.titleModel');
 
     // Extract CR values
     const [crGroup, crVersion] = claim.apiVersion.split('/');
@@ -375,7 +386,9 @@ export class KubernetesEntityProvider implements EntityProvider {
         systemNamespaceValue,
         systemNameValue,
         systemReferencesNamespaceValue,
-        prefix
+        prefix,
+        nameModel,
+        titleModel
       )
       .withLinks(this.parseBackstageLinks(claim.metadata.annotations || {}))
       .withAnnotations({
@@ -405,6 +418,10 @@ export class KubernetesEntityProvider implements EntityProvider {
     }
     const annotations = xr.metadata.annotations || {};
     const prefix = this.getAnnotationPrefix();
+
+    // Get entity naming configuration
+    const nameModel = this.config.getOptionalString('ingestor.mappings.nameModel') || 'name-namespace-cluster';
+    const titleModel = this.config.getOptionalString('ingestor.mappings.titleModel');
     const kind = xr.kind;
     const scope = compositeKindLookup[lookupKey]?.scope || compositeKindLookup[lookupKeyLower]?.scope;
     const crossplaneVersion = 'v2';
@@ -483,7 +500,9 @@ export class KubernetesEntityProvider implements EntityProvider {
         systemNamespaceValue,
         systemNameValue,
         systemReferencesNamespaceValue,
-        prefix
+        prefix,
+        nameModel,
+        titleModel
       )
       .withLinks(allLinks)
       .withAnnotations({
