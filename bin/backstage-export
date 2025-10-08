@@ -2,7 +2,8 @@
 
 /**
  * Backstage Export CLI entry point
- * This script delegates to the compiled JavaScript
+ * This script uses ts-node to run the TypeScript source directly
  */
 
-require('../dist/cli/backstage-export-cli');
+require('ts-node/register');
+require('../src/backstage-export/cli/backstage-export-cli');
