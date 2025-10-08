@@ -221,7 +221,7 @@ program
 
       const result = await transform(xrdData, {
         templateDir,
-        templateName: options.template,  // CLI override for template name
+        templateName: options.template,  // CLI override for main template name
         format: options.format,
         verbose: options.verbose,
         validate: options.validate,
