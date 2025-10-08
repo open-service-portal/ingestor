@@ -23,11 +23,11 @@
   action: publish:github:pull-request
   input:
     # Use parameter if provided, otherwise fall back to config (which includes XRD override, then global default)
-    repoUrl: github.com?owner={{{backstageVar "parameters.gitopsOwner || '{{config.gitops.ordersRepo.owner}}'"}}}& repo={{{backstageVar "parameters.gitopsRepo || '{{config.gitops.ordersRepo.repo}}'"}}}
+    repoUrl: github.com?owner={{{backstageVar "parameters.gitopsOwner || '{{config.gitops.owner}}'"}}}& repo={{{backstageVar "parameters.gitopsRepo || '{{config.gitops.repo}}'"}}}
     branchName: {{{backstageVar "\"create-\" + parameters.name + \"-resource\""}}}
     title: {{{backstageVar "\"Create \" + parameters.name + \" Resource\""}}}
     description: Create {{xrd.spec.names.kind}} resource {{{backstageVar "parameters.name"}}}
-    targetBranchName: {{{backstageVar "parameters.gitopsTargetBranch || '{{config.gitops.ordersRepo.targetBranch}}'"}}}
+    targetBranchName: {{{backstageVar "parameters.gitopsTargetBranch || '{{config.gitops.targetBranch}}'"}}}
   output:
     links:
       - title: View Pull Request

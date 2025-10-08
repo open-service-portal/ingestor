@@ -95,16 +95,15 @@ Example:
     crossplane:
       xrds:
         gitops:
-          ordersRepo:
-            owner: 'your-org'
-            repo: 'catalog-orders'
-            targetBranch: 'main'`;
+          owner: 'your-org'
+          repo: 'catalog-orders'
+          targetBranch: 'main'`;
   }
 
   const missing: string[] = [];
-  if (!gitopsConfig.ordersRepo?.owner) missing.push('ordersRepo.owner');
-  if (!gitopsConfig.ordersRepo?.repo) missing.push('ordersRepo.repo');
-  if (!gitopsConfig.ordersRepo?.targetBranch) missing.push('ordersRepo.targetBranch');
+  if (!gitopsConfig.owner) missing.push('owner');
+  if (!gitopsConfig.repo) missing.push('repo');
+  if (!gitopsConfig.targetBranch) missing.push('targetBranch');
 
   if (missing.length > 0) {
     return `GitOps configuration is incomplete. Missing required fields:
@@ -198,16 +197,13 @@ program
 
         // Apply parameter defaults to GitOps config (XRD annotations take precedence)
         if (parameterDefaults.gitopsOwner) {
-          gitopsConfig.ordersRepo = gitopsConfig.ordersRepo || {};
-          gitopsConfig.ordersRepo.owner = parameterDefaults.gitopsOwner;
+          gitopsConfig.owner = parameterDefaults.gitopsOwner;
         }
         if (parameterDefaults.gitopsRepo) {
-          gitopsConfig.ordersRepo = gitopsConfig.ordersRepo || {};
-          gitopsConfig.ordersRepo.repo = parameterDefaults.gitopsRepo;
+          gitopsConfig.repo = parameterDefaults.gitopsRepo;
         }
         if (parameterDefaults.gitopsTargetBranch) {
-          gitopsConfig.ordersRepo = gitopsConfig.ordersRepo || {};
-          gitopsConfig.ordersRepo.targetBranch = parameterDefaults.gitopsTargetBranch;
+          gitopsConfig.targetBranch = parameterDefaults.gitopsTargetBranch;
         }
 
         if (Object.keys(parameterDefaults).length > 0 && options.verbose) {

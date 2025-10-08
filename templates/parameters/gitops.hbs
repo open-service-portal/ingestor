@@ -15,17 +15,17 @@
       title: GitHub Organization/Owner
       type: string
       description: GitHub organization or user for the GitOps repository
-      default: {{config.gitops.ordersRepo.owner}}
-      ui:help: 'Current default: {{config.gitops.ordersRepo.owner}}'
+      default: {{config.gitops.owner}}
+      ui:help: 'Current default: {{config.gitops.owner}}'
     gitopsRepo:
       title: Repository Name
       type: string
       description: GitOps repository name where manifests will be stored
-      default: {{config.gitops.ordersRepo.repo}}
-      ui:help: 'Current default: {{config.gitops.ordersRepo.repo}}'
+      default: {{config.gitops.repo}}
+      ui:help: 'Current default: {{config.gitops.repo}}'
     gitopsTargetBranch:
       title: Target Branch
       type: string
       description: Target branch for pull requests
-      default: {{config.gitops.ordersRepo.targetBranch}}
-      ui:help: 'Current default: {{config.gitops.ordersRepo.targetBranch}}'
+      default: {{config.gitops.targetBranch}}
+      ui:help: 'Current default: {{config.gitops.targetBranch}}'

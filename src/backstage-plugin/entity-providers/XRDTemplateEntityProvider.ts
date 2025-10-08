@@ -160,11 +160,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     // Get GitOps configuration with XRD-level overrides
     // Start with global defaults from app-config
     let gitopsConfig = {
-      ordersRepo: {
-        owner: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.ordersRepo.owner'),
-        repo: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.ordersRepo.repo'),
-        targetBranch: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.ordersRepo.targetBranch'),
-      }
+      owner: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.owner'),
+      repo: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.repo'),
+      targetBranch: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.targetBranch'),
     };
 
     // Check for XRD-level parameter defaults via annotations
@@ -181,13 +179,13 @@ export class XRDTemplateEntityProvider implements EntityProvider {
 
     // Apply parameter defaults to GitOps config (XRD annotations take precedence)
     if (parameterDefaults.gitopsOwner) {
-      gitopsConfig.ordersRepo.owner = parameterDefaults.gitopsOwner;
+      gitopsConfig.owner = parameterDefaults.gitopsOwner;
     }
     if (parameterDefaults.gitopsRepo) {
-      gitopsConfig.ordersRepo.repo = parameterDefaults.gitopsRepo;
+      gitopsConfig.repo = parameterDefaults.gitopsRepo;
     }
     if (parameterDefaults.gitopsTargetBranch) {
-      gitopsConfig.ordersRepo.targetBranch = parameterDefaults.gitopsTargetBranch;
+      gitopsConfig.targetBranch = parameterDefaults.gitopsTargetBranch;
     }
 
     if (Object.keys(parameterDefaults).length > 0) {
