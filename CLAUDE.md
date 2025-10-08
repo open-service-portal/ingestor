@@ -8,24 +8,37 @@ This file provides guidance to Claude Code when working with the Backstage Inges
 
 ```
 plugins/ingestor/
-├── src/                    # Source code
-│   ├── lib/               # Core ingestion engine
-│   ├── adapters/          # Environment adapters
-│   ├── cli/               # CLI tools
-│   └── module.ts          # Backend module registration
-├── scripts/
-│   └── xrd-transform.sh   # XRD transformation script
-├── templates/             # Handlebars templates
-│   ├── default.hbs        # Main template generation
-│   ├── gitops.hbs         # GitOps step template
-│   └── README.md          # Template documentation
-├── tests/xrd-transform/   # Regression test suite
-│   ├── fixtures/          # Test XRD inputs
-│   ├── expected/          # Expected outputs (committed)
-│   └── output/            # Generated outputs (gitignored)
-├── run-tests.sh           # Test runner (in plugin root)
-└── docs/                  # Comprehensive documentation
+├── src/                          # Source code
+│   ├── lib/                      # Core ingestion engine
+│   ├── adapters/                 # Environment adapters
+│   ├── xrd-transform/            # XRD transform module
+│   │   └── cli/                  # XRD transform CLI
+│   ├── backstage-export/         # Backstage export module
+│   │   └── cli/                  # Export CLI
+│   └── module.ts                 # Backend module registration
+├── bin/                          # npm bin scripts
+│   ├── ingestor                  # XRD transform entry point
+│   └── backstage-export          # Export entry point
+├── scripts/                      # Shell wrappers
+│   ├── xrd-transform.sh          # XRD transform wrapper → bin/ingestor
+│   └── backstage-export.sh       # Export wrapper → bin/backstage-export
+├── templates/                    # Handlebars templates
+│   ├── default.hbs               # Main template generation
+│   ├── gitops.hbs                # GitOps step template
+│   └── README.md                 # Template documentation
+├── tests/xrd-transform/          # Regression test suite
+│   ├── fixtures/                 # Test XRD inputs
+│   ├── expected/                 # Expected outputs (committed)
+│   └── output/                   # Generated outputs (gitignored)
+├── run-tests.sh                  # Test runner (in plugin root)
+├── tsconfig.cli.json             # TypeScript config for CLI (CommonJS)
+└── docs/                         # Comprehensive documentation
 ```
+
+**CLI Architecture:**
+- **Bin scripts** (`bin/*`) - npm entry points, configure ts-node with tsconfig.cli.json
+- **Shell wrappers** (`scripts/*`) - path resolution, auto-detection, delegate to bin scripts
+- **TypeScript CLIs** (`src/*/cli/*`) - actual CLI implementation using Commander.js
 
 ## Development Commands
 
@@ -163,11 +176,79 @@ git commit -m "fix: update XRD transform to handle X properly"
 
 **Never blindly regenerate all expected files!** Each change should be reviewed and understood.
 
+## CLI Architecture
+
+### Bin Scripts + Shell Wrappers Pattern
+
+The plugin uses a dual-layer architecture for CLI tools:
+
+#### Layer 1: Bin Scripts (`bin/`)
+
+**Purpose:** npm package entry points that work when plugin is installed
+
+```javascript
+// bin/ingestor
+#!/usr/bin/env node
+require('ts-node').register({
+  project: require('path').join(__dirname, '..', 'tsconfig.cli.json')
+});
+require('../src/xrd-transform/cli/xrd-transform-cli');
+```
+
+**Key aspects:**
+- Explicitly configure ts-node with `tsconfig.cli.json`
+- Use CommonJS module resolution (`module: "commonjs"`)
+- Registered in `package.json` under `bin` field
+- Can be executed via `npx ingestor` when installed
+
+#### Layer 2: Shell Wrappers (`scripts/`)
+
+**Purpose:** User-friendly interfaces with path resolution and auto-detection
+
+```bash
+# scripts/xrd-transform.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Delegate to bin script
+"${PLUGIN_DIR}/bin/ingestor" "${ARGS[@]}"
+```
+
+**Key aspects:**
+- Handle relative path conversion to absolute paths
+- Auto-detect kubectl context for cluster targeting
+- Provide helpful defaults and validation
+- Delegate execution to bin scripts
+
+#### Why This Architecture?
+
+1. **npm Compatibility**: Bin scripts work when plugin is installed as a package
+2. **Development Convenience**: Shell wrappers provide better UX for local development
+3. **Consistent Execution**: Both layers use the same TypeScript CLI implementation
+4. **Module Resolution**: tsconfig.cli.json ensures CommonJS mode for reliable imports
+
+#### TypeScript Config for CLI
+
+`tsconfig.cli.json` is crucial for bin scripts to work:
+
+```json
+{
+  "compilerOptions": {
+    "module": "commonjs",  // Critical: Forces CommonJS module resolution
+    "target": "ES2020",
+    "esModuleInterop": true,
+    // ... other options
+  }
+}
+```
+
+Without this, ts-node would use ESM mode by default, causing module resolution errors.
+
 ## XRD Transform Script
 
 ### Location
 
-`./scripts/xrd-transform.sh` - Shell script wrapper around the TypeScript CLI
+`./scripts/xrd-transform.sh` - Shell script wrapper that delegates to `bin/ingestor`
 
 ### Purpose
 

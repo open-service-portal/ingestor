@@ -142,6 +142,22 @@ The ingestor automatically extracts and generates navigation links from Kubernet
 
 The plugin includes several command-line tools that use the same ingestion engine as the runtime plugin:
 
+### Architecture: Bin Scripts + Shell Wrappers
+
+The CLI tools use a dual-layer architecture:
+
+1. **Bin Scripts** (`bin/ingestor`, `bin/backstage-export`)
+   - npm-compatible entry points for package installation
+   - Configure ts-node with `tsconfig.cli.json` for CommonJS module resolution
+   - Can be used when plugin is installed as an npm package
+
+2. **Shell Wrappers** (`scripts/*.sh`)
+   - Handle path resolution and argument preprocessing
+   - Provide user-friendly interfaces with auto-detection features
+   - Delegate to bin scripts for execution
+
+This architecture provides both npm installability and local development convenience.
+
 ### XRD Transform Script (Template Ingestion)
 
 Transform XRDs into Backstage templates:
@@ -157,11 +173,17 @@ Transform XRDs into Backstage templates:
 ./scripts/xrd-transform.sh -t debug path/to/xrd.yaml
 ./scripts/xrd-transform.sh -o output/ path/to/xrd.yaml
 ./scripts/xrd-transform.sh -v path/to/xrd.yaml
+
+# Direct bin usage (if installed via npm)
+npx ingestor path/to/xrd.yaml
 ```
 
 **[→ Full XRD Transform Documentation](./docs/xrd-transform-examples.md)**
 
-**Note:** The workspace wrapper script at `portal-workspace/scripts/template-ingest.sh` delegates to this plugin's script (`plugins/ingestor/scripts/xrd-transform.sh`) for easier usage from anywhere in the workspace.
+**Implementation:**
+- Shell wrapper: `scripts/xrd-transform.sh` → `bin/ingestor`
+- Workspace wrapper: `portal-workspace/scripts/template-ingest.sh` → plugin script
+- TypeScript CLI: `src/xrd-transform/cli/xrd-transform-cli.ts`
 
 ### Backstage Export Script (Template Export)
 
@@ -182,11 +204,18 @@ Export entities from a running Backstage catalog:
 
 # List entities only
 ./scripts/backstage-export.sh --list --kind API
+
+# Direct bin usage (if installed via npm)
+npx backstage-export --kind Template
 ```
 
 **[→ Full Export CLI Documentation](./docs/cli-export.md)**
 
-**Note:** The workspace wrapper script at `portal-workspace/scripts/template-export.sh` delegates to this plugin's script (`plugins/ingestor/scripts/backstage-export.sh`). API token is auto-detected from app-config files.
+**Implementation:**
+- Shell wrapper: `scripts/backstage-export.sh` → `bin/backstage-export`
+- Workspace wrapper: `portal-workspace/scripts/template-export.sh` → plugin script
+- TypeScript CLI: `src/backstage-export/cli/backstage-export-cli.ts`
+- Auto-detects API token from app-config files
 
 ## Development
 

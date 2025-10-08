@@ -17,8 +17,8 @@ All notable changes to the Backstage Ingestor Plugin will be documented in this 
 #### Scripts and Tools
 - **xrd-transform.sh wrapper script** - Shell script for easy CLI access
   - Located at `scripts/xrd-transform.sh` for convenient transformation
-  - Handles path resolution and ts-node execution
-  - Workspace-level wrapper delegates to plugin script
+  - Delegates to `bin/ingestor` for consistent execution
+  - Workspace-level wrapper at `portal-workspace/scripts/template-ingest.sh`
   - Support for debug, validate, and output directory options
 - **backstage-export.sh script** - Export entities from Backstage catalog (NEW)
   - Fetch entities via Backstage REST API
@@ -27,7 +27,14 @@ All notable changes to the Backstage Ingestor Plugin will be documented in this 
   - Organize output by entity type or flat structure
   - Generate export manifest with metadata
   - Preview and list modes for exploration
+  - Delegates to `bin/backstage-export` for consistent execution
   - Workspace wrapper at `portal-workspace/scripts/template-export.sh`
+- **Bin scripts architecture** - npm-compatible entry points
+  - `bin/ingestor` - XRD transform CLI (delegates to xrd-transform-cli.ts)
+  - `bin/backstage-export` - Backstage export CLI (delegates to backstage-export-cli.ts)
+  - Both configure ts-node with `tsconfig.cli.json` for CommonJS module resolution
+  - Provides npm package compatibility when plugin is installed
+  - Shell wrappers handle path resolution and user-friendly interfaces
 - **--only filter** - Generate specific entity types
   - `--only template` generates only Backstage Template entities
   - `--only api` generates only API documentation entities
