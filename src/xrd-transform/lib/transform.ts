@@ -81,6 +81,19 @@ export class XRDTransformer {
       if (!str) return '';
       return str.trim();
     });
+
+    this.handlebars.registerHelper('replace', (str: string, search: string, replace: string) => {
+      if (!str) return '';
+      // Use replaceAll to replace all occurrences
+      return str.split(search).join(replace);
+    });
+
+    // Helper to indent multiline content
+    this.handlebars.registerHelper('indent', (str: string, spaces: number) => {
+      if (!str) return '';
+      const indentation = ' '.repeat(spaces || 0);
+      return str.split('\n').map(line => line ? indentation + line : line).join('\n');
+    });
   }
 
   /**
