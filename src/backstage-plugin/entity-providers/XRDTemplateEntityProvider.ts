@@ -123,7 +123,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       // Apply mutation to catalog
       await this.connection.applyMutation({
         type: 'full',
-        entities: allEntities.map(entity => ({
+        entities: allEntities.map(({ _xrdBaseName, ...entity }) => ({
           entity,
           locationKey: `provider:${this.getProviderName()}`,
         })),

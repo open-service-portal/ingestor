@@ -20,142 +20,115 @@ spec:
   owner: platform-team
   type: crossplane-resource
   parameters:
-    - title: GitOps Configuration
-      description: Configure GitOps repository settings for PR-based deployment
+    - title: Resource Configuration
+      required:
+        - name
+        - namespace
+        - image
       properties:
-        gitopsOwner:
-          title: GitHub Organization/Owner
+        name:
+          title: Name
           type: string
-          description: GitHub organization or user for the GitOps repository
-          default: open-service-portal
-          ui:help: 'Current default: open-service-portal'
-        gitopsRepo:
-          title: Repository Name
+          description: Name of the Application
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+        namespace:
+          title: Namespace
           type: string
-          description: GitOps repository name where manifests will be stored
-          default: catalog-orders
-          ui:help: 'Current default: catalog-orders'
-        gitopsTargetBranch:
-          title: Target Branch
+          description: Kubernetes namespace
+          default: default
+        image:
+          title: Image
           type: string
-          description: Target branch for pull requests
-          default: main
-          ui:help: 'Current default: main'
+          description: Container image
+        replicas:
+          title: Replicas
+          type: number
+          description: Number of replicas
+          default: 1
+          minimum: 1
+          maximum: 10
+        port:
+          title: Port
+          type: number
+          description: Service port
+          default: 8080
   steps:
-    - id: generateManifest
-      name: Generate Kubernetes Resource Manifest
-      action: terasky:claim-template
+    - id: workflow-info
+      name: Direct Apply Workflow Information
+      action: debug:log
       input:
-        parameters: ${{ parameters }}
-        nameParam: name
-        namespaceParam: namespace
-        ownerParam: owner
-        excludeParams:
-          - owner
-          - name
-          - namespace
-          - gitopsOwner
-          - gitopsRepo
-          - gitopsTargetBranch
-        apiVersion: platform.com/v1alpha1
-        kind: Application
-        clusters:
-          - rancher-desktop
-        removeEmptyParams: true
-    - id: create-pull-request
-      name: Create Pull Request
-      action: publish:github:pull-request
+        message: |
+          ⚡ This template uses direct apply workflow:
+
+          1. Creates your Application resource immediately in the cluster
+          2. Registers the resource in the Backstage catalog
+
+          Your resource will be created as soon as you click Create.
+      output:
+        text:
+          - title: ⚡ Direct Apply Workflow
+            content: >
+              This template follows a **direct apply workflow** for immediate
+              resource creation:
+
+
+              **What happens when you click Create:**
+
+
+              1. **Create Resource Immediately** 🚀
+                 - Your Application resource is created directly in the Kubernetes cluster
+                 - No approval required - resource is active immediately
+                 - Applied to cluster: `rancher-desktop`
+                 - Created in namespace: `$`
+
+              2. **Register in Catalog** 📝
+                 - The resource is automatically registered in the Backstage software catalog
+                 - You can track and manage it through Backstage
+
+              **✅ Important**: Your resource is **created immediately** without
+              approval workflow.
+    - id: create-resource
+      name: Create Application
+      action: kube:apply
       input:
-        repoUrl: >-
-          github.com?owner=${{ parameters.gitopsOwner ||
-          '{{config.gitops.ordersRepo.owner}}' }}& repo=${{
-          parameters.gitopsRepo || '{{config.gitops.ordersRepo.repo}}' }}
-        branchName: ${{ "create-" + parameters.name + "-resource" }}
-        title: ${{ "Create " + parameters.name + " Resource" }}
-        description: Create Application resource ${{ parameters.name }}
-        targetBranchName: >-
-          ${{ parameters.gitopsTargetBranch ||
-          '{{config.gitops.ordersRepo.targetBranch}}' }}
+        manifest: |
+          apiVersion: platform.com/v1alpha1
+          kind: Application
+          metadata:
+            name: ${{ parameters.name }}
+            namespace: ${{ parameters.namespace }}
+          spec: ${{ parameters }}
+        namespaced: true
+      output:
+        text:
+          - title: Resource Details
+            content: |
+              **Resource Created Successfully!** ✅
+
+              **Resource Information:**
+              - **Name**: `$`
+              - **Type**: Application
+              - **API Version**: platform.com/v1alpha1
+              - **Cluster**: rancher-desktop
+              - **Namespace**: `$`
+
+              Your resource is now active in the cluster and ready to use.
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.create-resource.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
       output:
         links:
-          - title: View Pull Request
-            icon: github
-            url: ${{ steps['create-pull-request'].output.remoteUrl }}
+          - title: View in Catalog
+            icon: catalog
+            url: ${{ steps['register'].output.entityRef }}
         text:
-          - title: Pull Request Number
-            content: ${{ steps['create-pull-request'].output.pullRequestNumber }}
+          - title: Catalog Registration
+            content: |
+              **Registered in Backstage Catalog** 📝
 
----
-apiVersion: backstage.io/v1alpha1
-kind: API
-metadata:
-  name: applications-platform-com-api
-  title: Application API
-  description: API specification for Application
-  tags:
-    - crossplane
-    - ingestor
-    - platform-com
-  annotations:
-    backstage.io/managed-by: xrd-transform
-    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
-    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
-    crossplane.io/xrd-name: applications.platform.com
-spec:
-  type: openapi
-  lifecycle: experimental
-  owner: platform-team
-  definition: |
-    openapi: 3.0.0
-    info:
-      title: Application API
-      version: v1alpha1
-      description: OpenAPI specification for Application
-    paths:
-      /applications:
-        get:
-          summary: List applications
-          responses:
-            '200':
-              description: Success
-        post:
-          summary: Create Application
-          requestBody:
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    spec:
-                      type: object
-                      description: Application configuration
-                      properties:
-                        image:
-                          type: string
-                          description: "Container image"
-                        replicas:
-                          type: number
-                          description: "Number of replicas"
-                          minimum: 1
-                          maximum: 10
-                        port:
-                          type: number
-                          description: "Service port"
-                      required:
-                        - image
-                    status:
-                      type: object
-                      properties:
-                        ready:
-                          type: boolean
-                          description: Whether the resource is ready
-                        phase:
-                          type: string
-                          description: Current phase of the resource
-                        message:
-                          type: string
-                          description: Status message
-          responses:
-            '201':
-              description: Created
+              Your Application resource has been added to the software catalog.
+              You can now track, monitor, and manage it through Backstage.
 
