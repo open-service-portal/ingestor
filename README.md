@@ -142,16 +142,16 @@ The ingestor automatically extracts and generates navigation links from Kubernet
 
 The plugin includes several command-line tools that use the same ingestion engine as the runtime plugin:
 
-### XRD Transform Script (Recommended)
+### XRD Transform Script (Template Ingestion)
 
-The easiest way to transform XRDs is using the transform script:
+Transform XRDs into Backstage templates:
 
 ```bash
 # From plugin directory
 ./scripts/xrd-transform.sh path/to/xrd.yaml
 
 # From workspace root (delegates to plugin script)
-./scripts/xrd-transform.sh template-namespace/configuration/xrd.yaml
+./scripts/template-ingest.sh template-namespace/configuration/xrd.yaml
 
 # With options
 ./scripts/xrd-transform.sh -t debug path/to/xrd.yaml
@@ -161,41 +161,32 @@ The easiest way to transform XRDs is using the transform script:
 
 **[→ Full XRD Transform Documentation](./docs/xrd-transform-examples.md)**
 
-**Note:** The workspace wrapper script at `portal-workspace/scripts/xrd-transform.sh` delegates to this plugin's script (`plugins/ingestor/scripts/xrd-transform.sh`) for easier usage from anywhere in the workspace.
+**Note:** The workspace wrapper script at `portal-workspace/scripts/template-ingest.sh` delegates to this plugin's script (`plugins/ingestor/scripts/xrd-transform.sh`) for easier usage from anywhere in the workspace.
 
-### Ingestor CLI
+### Backstage Export Script (Template Export)
 
-Process Kubernetes resources from files without running Backstage:
-
-```bash
-# Process XRD file
-npx ts-node src/cli/ingestor-cli.ts xrd.yaml
-
-# Preview generated template
-npx ts-node src/cli/ingestor-cli.ts xrd.yaml --preview
-
-# Process with custom tags
-npx ts-node src/cli/ingestor-cli.ts xrd.yaml --tags "database,production"
-```
-
-**[→ Full Ingestor CLI Documentation](./docs/cli-ingestor.md)**
-
-### Export CLI
-
-Extract entities from a running Backstage catalog:
+Export entities from a running Backstage catalog:
 
 ```bash
-# Export all templates
-npx ts-node src/cli/backstage-export.ts --kind Template
+# From plugin directory
+./scripts/backstage-export.sh --kind Template
 
-# Export with filtering
-npx ts-node src/cli/backstage-export.ts --kind Component --owner platform-team
+# From workspace root (delegates to plugin script)
+./scripts/template-export.sh --kind Template
+
+# Export with filters
+./scripts/backstage-export.sh --kind Template --tags crossplane --organize
 
 # Preview what would be exported
-npx ts-node src/cli/backstage-export.ts --kind Template --preview
+./scripts/backstage-export.sh --preview --kind Template,API
+
+# List entities only
+./scripts/backstage-export.sh --list --kind API
 ```
 
 **[→ Full Export CLI Documentation](./docs/cli-export.md)**
+
+**Note:** The workspace wrapper script at `portal-workspace/scripts/template-export.sh` delegates to this plugin's script (`plugins/ingestor/scripts/backstage-export.sh`). API token is auto-detected from app-config files.
 
 ## Development
 

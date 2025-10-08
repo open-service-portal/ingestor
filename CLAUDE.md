@@ -44,7 +44,7 @@ plugins/ingestor/
 # Failed:       0
 ```
 
-### XRD Transformation
+### XRD Transformation (Template Ingestion)
 
 ```bash
 # Transform XRD to Backstage template
@@ -63,20 +63,23 @@ plugins/ingestor/
 ./scripts/xrd-transform.sh -o ./output/ path/to/xrd.yaml
 ```
 
-### CLI Tools
+### Backstage Export (Template Export)
 
 ```bash
-# Process XRD file (same engine as runtime)
-npx ts-node src/cli/ingestor-cli.ts path/to/xrd.yaml
+# Export all templates from Backstage
+./scripts/backstage-export.sh --kind Template
 
-# Preview generated template
-npx ts-node src/cli/ingestor-cli.ts path/to/xrd.yaml --preview
+# Export with filters
+./scripts/backstage-export.sh --kind Template --tags crossplane --organize
 
-# Export entities from Backstage catalog
-npx ts-node src/cli/backstage-export.ts --kind Template
+# Preview what would be exported
+./scripts/backstage-export.sh --preview --kind Template,API
 
-# Export with filtering
-npx ts-node src/cli/backstage-export.ts --kind Template --owner platform-team
+# List entities only
+./scripts/backstage-export.sh --list --kind API
+
+# Export with custom output
+./scripts/backstage-export.sh --kind Template -o ./my-exports --manifest
 ```
 
 ## Testing XRD Transforms

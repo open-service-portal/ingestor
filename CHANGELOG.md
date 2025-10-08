@@ -20,6 +20,14 @@ All notable changes to the Backstage Ingestor Plugin will be documented in this 
   - Handles path resolution and ts-node execution
   - Workspace-level wrapper delegates to plugin script
   - Support for debug, validate, and output directory options
+- **backstage-export.sh script** - Export entities from Backstage catalog (NEW)
+  - Fetch entities via Backstage REST API
+  - Filter by kind, namespace, owner, tags, name
+  - Auto-detects API token from config files
+  - Organize output by entity type or flat structure
+  - Generate export manifest with metadata
+  - Preview and list modes for exploration
+  - Workspace wrapper at `portal-workspace/scripts/template-export.sh`
 - **--only filter** - Generate specific entity types
   - `--only template` generates only Backstage Template entities
   - `--only api` generates only API documentation entities
