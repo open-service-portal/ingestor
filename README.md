@@ -12,11 +12,14 @@ Originally forked from [@terasky/backstage-plugin-kubernetes-ingestor](https://g
 - **Multi-Cluster Support**: Works with multiple Kubernetes clusters simultaneously
 - **Custom Resource Support**: Extensible to support any Kubernetes custom resource
 - **Entity Metadata Enrichment**: Automatically adds relevant Kubernetes metadata to catalog entities
-- **XRD Template Generation**: Automatically generates Backstage templates for Crossplane XRDs
+- **XRD Template Generation**: Automatically generates Backstage templates for Crossplane XRDs using Handlebars
+- **Modular Template System**: Separate templates for parameters, steps, and API documentation
 - **GitOps Integration**: Support for PR-based template registration (GitHub/GitLab/Bitbucket)
-- **CLI Tools**: Command-line tools for ingestion and export operations
+- **Context-Aware CLI**: Automatically detects kubectl context and loads cluster-specific configuration
+- **CLI Tools**: Command-line tools for transformation, ingestion, and export operations
 - **Unified Architecture**: Same ingestion engine used by both CLI and runtime
 - **XR Status Links**: Automatic extraction and generation of links from Kubernetes resource status fields
+- **Test Infrastructure**: Comprehensive regression testing for template generation
 
 ## Installation
 
@@ -239,6 +242,12 @@ import { catalogModuleIngestor } from '@open-service-portal/backstage-plugin-ing
 
 2. Update your configuration keys if needed (most remain compatible)
 
+## Future Architecture
+
+We've documented a potential refactoring of the `KubernetesEntityProvider` using the Strategy Pattern for better extensibility and testability. See [Issue #6](https://github.com/open-service-portal/ingestor/issues/6) for the full architectural proposal.
+
+**Priority**: Low (nice-to-have, not urgent) - The current implementation is working and tested.
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
@@ -249,6 +258,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - Enhanced filtering capabilities
 - Performance optimizations
 - Documentation improvements
+- Custom Handlebars helpers for template generation
 
 ## Support
 
