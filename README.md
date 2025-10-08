@@ -140,7 +140,28 @@ The ingestor automatically extracts and generates navigation links from Kubernet
 
 ## CLI Tools
 
-The plugin includes two command-line tools that use the same ingestion engine as the runtime plugin:
+The plugin includes several command-line tools that use the same ingestion engine as the runtime plugin:
+
+### XRD Transform Script (Recommended)
+
+The easiest way to transform XRDs is using the wrapper script:
+
+```bash
+# From plugin directory
+./scripts/xrd-transform.sh path/to/xrd.yaml
+
+# From workspace root (delegates to plugin script)
+./scripts/xrd-transform.sh template-namespace/configuration/xrd.yaml
+
+# With options
+./scripts/xrd-transform.sh -t debug path/to/xrd.yaml
+./scripts/xrd-transform.sh -o output/ path/to/xrd.yaml
+./scripts/xrd-transform.sh -v path/to/xrd.yaml
+```
+
+**[→ Full XRD Transform Documentation](./docs/xrd-transform-examples.md)**
+
+**Note:** The workspace wrapper script at `portal-workspace/scripts/xrd-transform.sh` delegates to this plugin's script for easier usage from anywhere in the workspace.
 
 ### Ingestor CLI
 
