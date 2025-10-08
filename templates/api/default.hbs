@@ -11,16 +11,17 @@ metadata:
   tags:
     - crossplane
     - ingestor
-    - {{xrd.spec.group}}
+    - {{replace xrd.spec.group "." "-"}}
   annotations:
     backstage.io/managed-by: xrd-transform
     backstage.io/managed-by-location: "provider:XRDTemplateEntityProvider"
+    backstage.io/managed-by-origin-location: "provider:XRDTemplateEntityProvider"
     crossplane.io/xrd-name: {{xrd.metadata.name}}
 spec:
   type: openapi
   lifecycle: {{#if (getAnnotation xrd "backstage.io/lifecycle")}}{{getAnnotation xrd "backstage.io/lifecycle"}}{{else}}experimental{{/if}}
   owner: {{#if (getAnnotation xrd "backstage.io/owner")}}{{getAnnotation xrd "backstage.io/owner"}}{{else}}platform-team{{/if}}
-  definition:
+  definition: |
     openapi: 3.0.0
     info:
       title: {{xrd.spec.names.kind}} API
@@ -68,14 +69,14 @@ spec:
 {{/if}}
 {{/each}}
 {{#with (extractProperties xrd) as |props|}}
+{{#if (hasAny props "required")}}
+                      required:
 {{#each props}}
 {{#if required}}
-{{#if @first}}
-                      required:
-{{/if}}
                         - {{name}}
 {{/if}}
 {{/each}}
+{{/if}}
 {{/with}}
                     status:
                       type: object

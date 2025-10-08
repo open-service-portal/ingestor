@@ -1,0 +1,38 @@
+- id: generateManifest
+  name: Generate Kubernetes Resource Manifest
+  action: terasky:claim-template
+  input:
+    parameters: {{{backstageVar "parameters"}}}
+    nameParam: name
+    namespaceParam: {{#if (eq xrd.spec.scope "Namespaced")}}'namespace'{{else}}''{{/if}}
+    ownerParam: owner
+    excludeParams:
+      - owner
+      - name
+      - namespace
+      - gitopsOwner
+      - gitopsRepo
+      - gitopsTargetBranch
+    apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+    kind: {{xrd.spec.names.kind}}
+    clusters: ['{{metadata.cluster}}']
+    removeEmptyParams: true
+
+- id: create-pull-request
+  name: Create Pull Request
+  action: publish:github:pull-request
+  input:
+    # Use parameter if provided, otherwise fall back to config (which includes XRD override, then global default)
+    repoUrl: github.com?owner={{{backstageVar "parameters.gitopsOwner || '{{config.gitops.ordersRepo.owner}}'"}}}& repo={{{backstageVar "parameters.gitopsRepo || '{{config.gitops.ordersRepo.repo}}'"}}}
+    branchName: {{{backstageVar "\"create-\" + parameters.name + \"-resource\""}}}
+    title: {{{backstageVar "\"Create \" + parameters.name + \" Resource\""}}}
+    description: Create {{xrd.spec.names.kind}} resource {{{backstageVar "parameters.name"}}}
+    targetBranchName: {{{backstageVar "parameters.gitopsTargetBranch || '{{config.gitops.ordersRepo.targetBranch}}'"}}}
+  output:
+    links:
+      - title: View Pull Request
+        icon: github
+        url: {{{backstageVar "steps['create-pull-request'].output.remoteUrl"}}}
+    text:
+      - title: Pull Request Number
+        content: {{{backstageVar "steps['create-pull-request'].output.pullRequestNumber"}}}

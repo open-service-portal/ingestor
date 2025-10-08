@@ -1,0 +1,31 @@
+{{!--
+  GitOps Parameters Template
+  Pure GitOps configuration section for PR-based workflows
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - config: Configuration with gitops settings
+  - helpers: Utility functions
+--}}
+- title: GitOps Configuration
+  description: Configure GitOps repository settings for PR-based deployment
+  properties:
+    gitopsOwner:
+      title: GitHub Organization/Owner
+      type: string
+      description: GitHub organization or user for the GitOps repository
+      default: {{config.gitops.ordersRepo.owner}}
+      ui:help: 'Current default: {{config.gitops.ordersRepo.owner}}'
+    gitopsRepo:
+      title: Repository Name
+      type: string
+      description: GitOps repository name where manifests will be stored
+      default: {{config.gitops.ordersRepo.repo}}
+      ui:help: 'Current default: {{config.gitops.ordersRepo.repo}}'
+    gitopsTargetBranch:
+      title: Target Branch
+      type: string
+      description: Target branch for pull requests
+      default: {{config.gitops.ordersRepo.targetBranch}}
+      ui:help: 'Current default: {{config.gitops.ordersRepo.targetBranch}}'
