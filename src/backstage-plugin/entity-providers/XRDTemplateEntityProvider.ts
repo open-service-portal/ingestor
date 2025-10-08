@@ -157,13 +157,80 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     const owner = this.config.getOptionalString('catalog.owner') || 'platform-team';
     const tags = this.config.getOptionalStringArray('catalog.tags') || [];
 
+    // Get GitOps configuration with XRD-level overrides
+    // Start with global defaults from app-config
+    let gitopsConfig = {
+      ordersRepo: {
+        owner: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.ordersRepo.owner'),
+        repo: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.ordersRepo.repo'),
+        targetBranch: this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.gitops.ordersRepo.targetBranch'),
+      }
+    };
+
+    // Check for XRD-level parameter defaults via annotations
+    // Pattern: openportal.dev/parameter.<paramName>: <value>
+    const annotations = xrd.metadata?.annotations || {};
+    const parameterDefaults: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(annotations)) {
+      if (key.startsWith('openportal.dev/parameter.')) {
+        const paramName = key.replace('openportal.dev/parameter.', '');
+        parameterDefaults[paramName] = value as string;
+      }
+    }
+
+    // Apply parameter defaults to GitOps config (XRD annotations take precedence)
+    if (parameterDefaults.gitopsOwner) {
+      gitopsConfig.ordersRepo.owner = parameterDefaults.gitopsOwner;
+    }
+    if (parameterDefaults.gitopsRepo) {
+      gitopsConfig.ordersRepo.repo = parameterDefaults.gitopsRepo;
+    }
+    if (parameterDefaults.gitopsTargetBranch) {
+      gitopsConfig.ordersRepo.targetBranch = parameterDefaults.gitopsTargetBranch;
+    }
+
+    if (Object.keys(parameterDefaults).length > 0) {
+      this.logger.debug(`Using XRD parameter defaults for ${xrd.metadata?.name}: ${JSON.stringify(parameterDefaults)}`);
+    }
+
+    // Debug: Log config for gitops templates
+    const stepsTemplate = xrd.metadata?.annotations?.['openportal.dev/template-steps'];
+    if (stepsTemplate?.includes('gitops')) {
+      this.logger.debug(`GitOps config for ${xrd.metadata?.name}: ${JSON.stringify(gitopsConfig, null, 2)}`);
+    }
+
     // Transform using xrd-transform
     const result = await this.transformer.transform(extractData, {
       context: {
         owner,
         tags,
+        config: {
+          gitops: gitopsConfig
+        },
       },
     });
+
+    // Debug: Log generated template entities
+    if (result.success && result.entities && result.entities.length > 0) {
+      for (const entity of result.entities) {
+        this.logger.debug(`Generated entity for ${xrd.metadata?.name}:`);
+        this.logger.debug(`  Kind: ${entity.kind}`);
+        this.logger.debug(`  Name: ${entity.metadata?.name}`);
+
+        // Log scaffolder steps for Template entities
+        if (entity.kind === 'Template' && entity.spec?.steps) {
+          this.logger.debug(`  Steps:`);
+          for (const step of entity.spec.steps) {
+            this.logger.debug(`    - ${step.id}: ${step.action}`);
+            if (step.action === 'publish:github:pull-request') {
+              this.logger.debug(`      repoUrl: ${step.input?.repoUrl}`);
+              this.logger.debug(`      targetBranchName: ${step.input?.targetBranchName}`);
+            }
+          }
+        }
+      }
+    }
 
     if (!result.success) {
       throw new Error(`Transform failed: ${result.errors?.join(', ')}`);

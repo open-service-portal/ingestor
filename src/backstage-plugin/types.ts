@@ -65,3 +65,33 @@ export interface TransformedEntity {
   metadata: Record<string, any>;
   spec: Record<string, any>;
 }
+
+/**
+ * Kubernetes Proxy Request Body
+ */
+export interface KubernetesProxyRequestBody {
+  path: string;
+  clusterName: string;
+  method?: string;
+  body?: any;
+}
+
+/**
+ * Options for Kubernetes Resource Fetcher
+ */
+export interface KubernetesResourceFetcherOptions {
+  clusterName: string;
+  apiVersion?: string;
+  kind?: string;
+  namespace?: string;
+  resourcePath?: string; // Alternative to apiVersion/kind for custom paths
+}
+
+/**
+ * Kubernetes Resource Fetcher Interface
+ */
+export interface KubernetesResourceFetcher {
+  getClusters(): Promise<string[]>;
+  fetchResources(options: KubernetesResourceFetcherOptions): Promise<any[]>;
+  proxyRequest(body: KubernetesProxyRequestBody): Promise<any>;
+}

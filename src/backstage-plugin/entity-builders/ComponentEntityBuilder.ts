@@ -26,9 +26,9 @@ export class ComponentEntityBuilder {
   withKubernetesMetadata(
     resource: any,
     clusterName: string,
-    systemNamespace?: string,
+    _systemNamespace?: string,
     systemName?: string,
-    systemReferencesNamespace?: string,
+    _systemReferencesNamespace?: string,
     prefix: string = 'backstage.io',
   ): this {
     const annotations = resource.metadata?.annotations || {};

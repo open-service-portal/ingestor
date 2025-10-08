@@ -150,14 +150,30 @@ export class XRDDataProvider {
           // Group XRDs by their name and add clusters and compositions information
           allFetchedObjects.forEach(xrd => {
             const xrdName = xrd.metadata.name;
-            const compositeType = xrd.status?.controllers?.compositeResourceType;
-            
-            // Check if compositeType exists and has valid values
+            let compositeType = xrd.status?.controllers?.compositeResourceType;
+
+            // Fall back to spec if status is not yet populated (happens with newly created XRDs)
             if (!compositeType || !compositeType.kind || !compositeType.apiVersion || compositeType.kind === "" || compositeType.apiVersion === "") {
-              this.logger.error(
-                `XRD ${xrdName} has invalid or missing compositeResourceType controllers status. Kind: ${compositeType?.kind}, ApiVersion: ${compositeType?.apiVersion}. Skipping created a Software Template for this XRD.`,
-              );
-              return; // Skip this XRD
+              if (xrd.spec?.names?.kind && xrd.spec?.group) {
+                // Infer from XRD spec
+                const version = xrd.spec.versions?.[0]?.name || 'v1alpha1';
+                compositeType = {
+                  kind: xrd.spec.names.kind,
+                  apiVersion: `${xrd.spec.group}/${version}`,
+                };
+                this.logger.debug(
+                  `XRD ${xrdName} status not populated yet, using spec: ${compositeType.kind} ${compositeType.apiVersion}`,
+                );
+                // Patch the XRD object so later code can access the inferred type consistently
+                if (!xrd.status) xrd.status = {};
+                if (!xrd.status.controllers) xrd.status.controllers = {};
+                xrd.status.controllers.compositeResourceType = compositeType;
+              } else {
+                this.logger.error(
+                  `XRD ${xrdName} has invalid or missing compositeResourceType and cannot infer from spec. Skipping.`,
+                );
+                return; // Skip this XRD
+              }
             }
 
             if (!xrdMap.has(xrdName)) {

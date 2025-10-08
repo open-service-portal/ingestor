@@ -93,7 +93,7 @@ export class SystemEntityBuilder {
   withKubernetesMetadata(
     namespace: string,
     clusterName: string,
-    prefix: string,
+    _prefix: string, // Kept for API compatibility
     customAnnotations: Record<string, string>,
   ): this {
     const name = `${namespace}-${clusterName}`;
@@ -118,7 +118,7 @@ export class SystemEntityBuilder {
     resource: any,
     systemName: string,
     systemNamespace: string,
-    systemReferencesNamespace: string,
+    _systemReferencesNamespace: string,
     prefix: string,
     customAnnotations: Record<string, string>,
   ): this {
