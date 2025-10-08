@@ -1,0 +1,116 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: managednamespaces-openportal-dev
+  title: Managed Namespace
+  description: Create and manage ManagedNamespace resources
+  tags:
+    - crossplane
+    - openportal-dev
+    - namespace
+    - kubernetes
+    - core
+    - rbac
+    - infrastructure
+    - platform
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: managednamespaces.openportal.dev
+    crossplane.io/xrd-group: openportal.dev
+    backstage.io/techdocs-ref: url:https://github.com/open-service-portal/template-namespace
+spec:
+  owner: platform-team
+  type: crossplane-resource
+  parameters:
+    - title: Resource Configuration
+      required:
+        - name
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Name of the ManagedNamespace
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+  steps:
+    - id: workflow-info
+      name: Direct Apply Workflow Information
+      action: debug:log
+      input:
+        message: |
+          ⚡ This template uses direct apply workflow:
+
+          1. Creates your ManagedNamespace resource immediately in the cluster
+          2. Registers the resource in the Backstage catalog
+
+          Your resource will be created as soon as you click Create.
+      output:
+        text:
+          - title: ⚡ Direct Apply Workflow
+            content: >
+              This template follows a **direct apply workflow** for immediate
+              resource creation:
+
+
+              **What happens when you click Create:**
+
+
+              1. **Create Resource Immediately** 🚀
+                 - Your ManagedNamespace resource is created directly in the Kubernetes cluster
+                 - No approval required - resource is active immediately
+                 - Applied to cluster: `rancher-desktop`
+
+              2. **Register in Catalog** 📝
+                 - The resource is automatically registered in the Backstage software catalog
+                 - You can track and manage it through Backstage
+
+              **✅ Important**: Your resource is **created immediately** without
+              approval workflow.
+    - id: create-resource
+      name: Create ManagedNamespace
+      action: kube:apply
+      input:
+        manifest: |
+          apiVersion: openportal.dev/v1alpha1
+          kind: ManagedNamespace
+          metadata:
+            name: ${{ parameters.name }}
+          spec: ${{ parameters }}
+        namespaced: false
+      output:
+        text:
+          - title: Resource Details
+            content: |
+              **Resource Created Successfully!** ✅
+
+              **Resource Information:**
+              - **Name**: `$`
+              - **Type**: ManagedNamespace
+              - **API Version**: openportal.dev/v1alpha1
+              - **Cluster**: rancher-desktop
+              - **Scope**: Cluster-wide
+
+              Your resource is now active in the cluster and ready to use.
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.create-resource.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+      output:
+        links:
+          - title: View in Catalog
+            icon: catalog
+            url: ${{ steps['register'].output.entityRef }}
+        text:
+          - title: Catalog Registration
+            content: >
+              **Registered in Backstage Catalog** 📝
+
+
+              Your ManagedNamespace resource has been added to the software
+              catalog.
+
+              You can now track, monitor, and manage it through Backstage.
+

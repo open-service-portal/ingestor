@@ -1,0 +1,78 @@
+---
+# Namespace XRD (Composite Resource Definition)
+# Restaurant Analogy: Menu item for "table reservation" - creates a dedicated space for your resources
+# Using Crossplane v2 with namespaced XRs (no claims needed)
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: managednamespaces.openportal.dev
+  labels:
+    terasky.backstage.io/generate-form: "true"
+    openportal.dev/version: "dev"  # CI/CD will replace with actual version
+  annotations:
+    # Standard Backstage metadata
+    backstage.io/title: "Managed Namespace"
+    backstage.io/description: "Crossplane template for managing Kubernetes namespaces"
+    backstage.io/owner: "platform-team"
+    backstage.io/system: "infrastructure-templates"
+    backstage.io/lifecycle: "experimental"
+    backstage.io/source-location: "url:https://github.com/open-service-portal/template-namespace"
+    backstage.io/techdocs-ref: "url:https://github.com/open-service-portal/template-namespace"
+
+    # XRD Transform - GitOps PR workflow
+    openportal.dev/template-steps: "gitops"
+
+    # Project metadata
+    openportal.dev/tags: "namespace,kubernetes,core,rbac,infrastructure,platform"
+    openportal.dev/version: "dev"
+
+    # GitOps publishing configuration
+    openportal.dev/publish-phase: |
+      gitRepo: "github.com?owner=open-service-portal&repo=catalog-orders"
+      gitBranch: "main"
+      gitLayout: "cluster-scoped"
+      basePath: "system/ManagedNamespace"
+      createPr: true
+
+    # Crossplane
+    crossplane.io/version: "v2.0"
+spec:
+  scope: Cluster # Must be Cluster-scoped to create Namespace resources
+  group: openportal.dev
+  names:
+    kind: ManagedNamespace
+    plural: managednamespaces
+  defaultCompositionRef:
+    name: managednamespaces  # Added for Crossplane v2
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              description: Namespace configuration
+              properties:
+                name:
+                  type: string
+                  description: Name of the namespace to create
+                  pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                  minLength: 1
+                  maxLength: 63
+              required:
+                - name
+            status:
+              type: object
+              properties:
+                ready:
+                  type: boolean
+                  description: Whether the namespace is ready
+                phase:
+                  type: string
+                  description: Current phase of the namespace
+                message:
+                  type: string
+                  description: Status message
