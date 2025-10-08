@@ -144,7 +144,7 @@ The plugin includes several command-line tools that use the same ingestion engin
 
 ### XRD Transform Script (Recommended)
 
-The easiest way to transform XRDs is using the wrapper script:
+The easiest way to transform XRDs is using the transform script:
 
 ```bash
 # From plugin directory
@@ -161,7 +161,7 @@ The easiest way to transform XRDs is using the wrapper script:
 
 **[→ Full XRD Transform Documentation](./docs/xrd-transform-examples.md)**
 
-**Note:** The workspace wrapper script at `portal-workspace/scripts/xrd-transform.sh` delegates to this plugin's script for easier usage from anywhere in the workspace.
+**Note:** The workspace wrapper script at `portal-workspace/scripts/xrd-transform.sh` delegates to this plugin's script (`plugins/ingestor/scripts/xrd-transform.sh`) for easier usage from anywhere in the workspace.
 
 ### Ingestor CLI
 
@@ -235,6 +235,27 @@ yarn cli:ingestor examples/xrd.yaml --preview
 yarn cli:export --list --kind Template
 ```
 
+### Testing XRD Transforms
+
+The plugin includes a comprehensive regression test suite for XRD transformation:
+
+```bash
+# Run from plugin root directory
+./run-tests.sh
+
+# Or from test directory
+cd tests/xrd-transform
+../../run-tests.sh
+```
+
+**Test Coverage:**
+- ✅ Namespaced and cluster-scoped resources
+- ✅ Parameter annotations and GitOps workflows
+- ✅ Complex property types (arrays, objects, booleans)
+- ✅ Template and API entity generation
+
+**[→ Full Testing Documentation](./tests/xrd-transform/README.md)**
+
 ### Test Maintainability
 
 **⚠️ IMPORTANT:** The xrd-transform test suite uses expected output files with protective headers to prevent accidental test corruption.
@@ -253,7 +274,7 @@ yarn cli:export --list --kind Template
 **Update process:**
 ```bash
 # 1. Run tests to see differences
-bash tests/xrd-transform/run-tests.sh
+./run-tests.sh
 
 # 2. Review each diff carefully - understand WHY it changed
 # 3. Update expected file (keeping the warning header!)

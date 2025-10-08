@@ -6,11 +6,10 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-WORKSPACE_ROOT="$( cd "${SCRIPT_DIR}/../../../../.." && pwd )"
-FIXTURES_DIR="${SCRIPT_DIR}/fixtures"
-EXPECTED_DIR="${SCRIPT_DIR}/expected"
-OUTPUT_DIR="${SCRIPT_DIR}/output"
-TRANSFORM_SCRIPT="${WORKSPACE_ROOT}/scripts/xrd-transform.sh"
+FIXTURES_DIR="${SCRIPT_DIR}/tests/xrd-transform/fixtures"
+EXPECTED_DIR="${SCRIPT_DIR}/tests/xrd-transform/expected"
+OUTPUT_DIR="${SCRIPT_DIR}/tests/xrd-transform/output"
+TRANSFORM_SCRIPT="${SCRIPT_DIR}/scripts/xrd-transform.sh"
 
 # Colors for output
 RED='\033[0;31m'

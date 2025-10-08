@@ -5,22 +5,25 @@ This directory contains a diff-based test suite for validating XRD transformatio
 ## Directory Structure
 
 ```
-tests/xrd-transform/
-├── fixtures/           # Test XRD input files
-│   ├── 01-basic-namespaced.yaml
-│   ├── 02-parameter-annotations.yaml
-│   ├── 03-cluster-scoped.yaml
-│   ├── 04-gitops-workflow.yaml
-│   └── 05-complex-properties.yaml
-├── expected/           # Expected transform outputs (checked into git)
-│   ├── 01-basic-namespaced.yaml
-│   ├── 02-parameter-annotations.yaml
-│   ├── 03-cluster-scoped.yaml
-│   ├── 04-gitops-workflow.yaml
-│   └── 05-complex-properties.yaml
-├── output/             # Actual test outputs (gitignored)
-├── run-tests.sh        # Diff-based test runner
-└── README.md           # This file
+plugins/ingestor/
+├── scripts/
+│   └── xrd-transform.sh      # XRD transformation script
+├── tests/xrd-transform/
+│   ├── fixtures/             # Test XRD input files
+│   │   ├── 01-basic-namespaced.yaml
+│   │   ├── 02-parameter-annotations.yaml
+│   │   ├── 03-cluster-scoped.yaml
+│   │   ├── 04-gitops-workflow.yaml
+│   │   └── 05-complex-properties.yaml
+│   ├── expected/             # Expected transform outputs (checked into git)
+│   │   ├── 01-basic-namespaced.yaml
+│   │   ├── 02-parameter-annotations.yaml
+│   │   ├── 03-cluster-scoped.yaml
+│   │   ├── 04-gitops-workflow.yaml
+│   │   └── 05-complex-properties.yaml
+│   ├── output/               # Actual test outputs (gitignored)
+│   └── README.md             # This file
+└── run-tests.sh              # Diff-based test runner (in plugin root)
 ```
 
 ## Test Cases
@@ -78,7 +81,12 @@ Tests complex OpenAPI types:
 ### Run All Tests
 
 ```bash
-cd plugins/ingestor/tests/xrd-transform
+# From plugin root directory (recommended)
+cd plugins/ingestor
+./run-tests.sh
+
+# Or from anywhere in the workspace
+cd app-portal/plugins/ingestor
 ./run-tests.sh
 ```
 
@@ -107,9 +115,10 @@ Failed:       0
 
 ## How It Works
 
-1. **Transform Generation**: Each fixture XRD is transformed using `scripts/xrd-transform.sh`
+1. **Transform Generation**: Each fixture XRD is transformed using `../../scripts/xrd-transform.sh` (relative to plugin root)
 2. **Diff Comparison**: Output is compared against expected YAML using `diff -u`
 3. **Pass/Fail**: Tests pass if output exactly matches expected output
+4. **Header Validation**: Ensures expected files have protective warning headers
 
 ## Adding New Tests
 
@@ -132,22 +141,23 @@ EOF
 ### 2. Generate Expected Output
 
 ```bash
-# From workspace root
+# From plugin root directory
 ./scripts/xrd-transform.sh \
-  app-portal/plugins/ingestor/tests/xrd-transform/fixtures/06-my-test.yaml \
-  > app-portal/plugins/ingestor/tests/xrd-transform/expected/06-my-test.yaml
+  tests/xrd-transform/fixtures/06-my-test.yaml \
+  > tests/xrd-transform/expected/06-my-test.yaml
 ```
 
 ### 3. Review Expected Output
 
 ```bash
 # Verify the generated template looks correct
-cat expected/06-my-test.yaml | less
+cat tests/xrd-transform/expected/06-my-test.yaml | less
 ```
 
 ### 4. Run Tests
 
 ```bash
+# From plugin root
 ./run-tests.sh
 ```
 
@@ -156,15 +166,18 @@ cat expected/06-my-test.yaml | less
 When you intentionally change transform behavior:
 
 ```bash
+# From plugin root directory
+cd /path/to/plugins/ingestor
+
 # Regenerate all expected outputs
-for fixture in fixtures/*.yaml; do
+for fixture in tests/xrd-transform/fixtures/*.yaml; do
   name=$(basename "$fixture" .yaml)
-  ../../../../scripts/xrd-transform.sh "$fixture" > "expected/${name}.yaml"
+  ./scripts/xrd-transform.sh "$fixture" > "tests/xrd-transform/expected/${name}.yaml"
 done
 
 # Or update individual test
-./../../../../scripts/xrd-transform.sh fixtures/01-basic-namespaced.yaml \
-  > expected/01-basic-namespaced.yaml
+./scripts/xrd-transform.sh tests/xrd-transform/fixtures/01-basic-namespaced.yaml \
+  > tests/xrd-transform/expected/01-basic-namespaced.yaml
 ```
 
 ## Viewing Expected Outputs
@@ -220,8 +233,8 @@ Test: 02-parameter-annotations
 
 **To debug:**
 ```bash
-# Run transform manually to see full error
-./../../../../scripts/xrd-transform.sh fixtures/02-parameter-annotations.yaml
+# Run transform manually to see full error (from plugin root)
+./scripts/xrd-transform.sh tests/xrd-transform/fixtures/02-parameter-annotations.yaml
 ```
 
 ### Expected Output Missing
