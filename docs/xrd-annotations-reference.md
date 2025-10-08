@@ -35,7 +35,7 @@ metadata:
 
 ---
 
-### `backstage.io/template-api`
+### `openportal.dev/template-api`
 
 **Purpose:** Specifies the API documentation entity template.
 
@@ -47,7 +47,7 @@ metadata:
 ```yaml
 metadata:
   annotations:
-    backstage.io/template-api: "openapi-v3"
+    openportal.dev/template-api: "openapi-v3"
 ```
 
 **Use Cases:**
@@ -57,7 +57,7 @@ metadata:
 
 ---
 
-### `backstage.io/template-parameters`
+### `openportal.dev/template-parameters`
 
 **Purpose:** Specifies the template for scaffolder form parameters.
 
@@ -69,7 +69,7 @@ metadata:
 ```yaml
 metadata:
   annotations:
-    backstage.io/template-parameters: "database"
+    openportal.dev/template-parameters: "database"
 ```
 
 **Use Cases:**
@@ -85,7 +85,7 @@ metadata:
 
 ---
 
-### `backstage.io/template-steps`
+### `openportal.dev/template-steps`
 
 **Purpose:** Specifies the template for scaffolder workflow steps.
 
@@ -97,7 +97,7 @@ metadata:
 ```yaml
 metadata:
   annotations:
-    backstage.io/template-steps: "gitops"
+    openportal.dev/template-steps: "gitops"
 ```
 
 **Use Cases:**
@@ -243,10 +243,10 @@ metadata:
     terasky.backstage.io/generate-form: "true"
   annotations:
     # Template Selection
-    backstage.io/template: "default"
-    backstage.io/template-api: "default"
-    backstage.io/template-parameters: "database"
-    backstage.io/template-steps: "gitops"
+    openportal.dev/template: "default"
+    openportal.dev/template-api: "default"
+    openportal.dev/template-parameters: "database"
+    openportal.dev/template-steps: "gitops"
 
     # Metadata
     backstage.io/title: "PostgreSQL Database"
@@ -319,7 +319,7 @@ To use custom templates referenced by annotations:
    ```yaml
    metadata:
      annotations:
-       backstage.io/template-parameters: "database"
+       openportal.dev/template-parameters: "database"
    ```
 
 ## CLI Usage with Annotations

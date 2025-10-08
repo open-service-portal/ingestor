@@ -328,12 +328,12 @@ metadata:
   name: example.openportal.dev
   annotations:
     # Main template selection
-    backstage.io/template: "default"              # Main backstage template (optional)
-    backstage.io/template-api: "default"          # API doc template (optional)
+    openportal.dev/template: "default"              # Main backstage template (optional)
+    openportal.dev/template-api: "default"          # API doc template (optional)
 
     # Sub-template selection (modular architecture)
-    backstage.io/template-parameters: "default"   # Parameters section (optional)
-    backstage.io/template-steps: "default"        # Steps section (optional)
+    openportal.dev/template-parameters: "default"   # Parameters section (optional)
+    openportal.dev/template-steps: "default"        # Steps section (optional)
 ```
 
 **Available Templates:**
@@ -424,8 +424,8 @@ To create custom templates for your XRDs:
    metadata:
      name: databases.platform.io
      annotations:
-       backstage.io/template-parameters: "database"
-       backstage.io/template-steps: "gitops"
+       openportal.dev/template-parameters: "database"
+       openportal.dev/template-steps: "gitops"
    ```
 
 4. **Transform with custom templates:**

@@ -44,7 +44,7 @@ All notable changes to the Backstage Ingestor Plugin will be documented in this 
 - **Modular template architecture** - Separate templates for parameters and steps
   - `parameters/` directory for form field templates
   - `steps/` directory for workflow step templates
-  - Annotation-based template selection (backstage.io/parameters-template, backstage.io/steps-template)
+  - Annotation-based template selection (openportal.dev/template-parameters, openportal.dev/template-steps)
   - Reusable template components for common patterns
   - Cluster-scoped template variants without namespace parameters
 
