@@ -56,6 +56,7 @@ export interface TemplateHelpers {
   toJson: (obj: any) => string;
   getAnnotation: (xrd: any, key: string) => string | undefined;
   getLabel: (xrd: any, key: string) => string | undefined;
+  hasAny: (array: any[], propertyName: string) => boolean;
 }
 
 export interface PropertyInfo {

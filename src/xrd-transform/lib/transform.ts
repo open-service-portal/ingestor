@@ -165,9 +165,10 @@ export class XRDTransformer {
           entities.push(apiDoc);
         }
       } catch (error) {
-        // API doc is optional, just log warning
+        // API doc is optional, log error for debugging
+        console.error(`Failed to generate API doc for ${xrd.metadata.name}: ${error}`);
         if (options?.verbose) {
-          console.warn(`Could not generate API doc: ${error}`);
+          console.error((error as Error).stack);
         }
       }
 

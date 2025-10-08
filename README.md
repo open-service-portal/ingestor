@@ -235,6 +235,36 @@ yarn cli:ingestor examples/xrd.yaml --preview
 yarn cli:export --list --kind Template
 ```
 
+### Test Maintainability
+
+**⚠️ IMPORTANT:** The xrd-transform test suite uses expected output files with protective headers to prevent accidental test corruption.
+
+**Test expectations should ONLY be updated when:**
+1. You've added **new features** that intentionally change output
+2. You've **fixed bugs** where the old output was incorrect
+3. You've **modified templates** with a clear purpose
+
+**Never blindly regenerate expected files!** Each expected test file includes a warning header that:
+- Documents when updates are appropriate
+- Reminds you to review changes carefully
+- Ensures both Template AND API entities are generated
+- Is validated by the test runner to prevent accidental removal
+
+**Update process:**
+```bash
+# 1. Run tests to see differences
+bash tests/xrd-transform/run-tests.sh
+
+# 2. Review each diff carefully - understand WHY it changed
+# 3. Update expected file (keeping the warning header!)
+cp tests/xrd-transform/output/01-basic-namespaced.yaml \
+   tests/xrd-transform/expected/01-basic-namespaced.yaml
+
+# 4. Document the change in your commit message
+```
+
+See [tests/xrd-transform/expected/](./tests/xrd-transform/expected/) for examples of properly formatted expected files.
+
 ### Testing with Local Backstage
 
 1. Link the plugin in your Backstage app:

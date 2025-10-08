@@ -6,8 +6,8 @@ import { Entity } from '@backstage/catalog-model';
 import { Config } from '@backstage/config';
 import { LoggerService, SchedulerServiceTaskRunner } from '@backstage/backend-plugin-api';
 import { DefaultKubernetesResourceFetcher } from '../services';
-import { XRDDataProvider } from '../providers/XRDDataProvider';
-import { CRDDataProvider } from '../providers/CRDDataProvider';
+import { XRDDataProvider } from '../data-providers/XRDDataProvider';
+import { CRDDataProvider } from '../data-providers/CRDDataProvider';
 import { XRDTransformer } from '../../xrd-transform/lib/transform';
 import { XRDExtractData } from '../../xrd-transform/lib/types';
 

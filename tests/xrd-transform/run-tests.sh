@@ -60,6 +60,16 @@ for fixture in "${FIXTURES_DIR}"/*.yaml; do
     continue
   fi
 
+  # Validate that expected file has warning header
+  if ! grep -q "EXPECTED TEST OUTPUT" "${expected_file}"; then
+    echo -e "  ${RED}✗ Expected file missing warning header${NC}"
+    echo -e "  ${YELLOW}Expected files must have a warning header to prevent blind regeneration${NC}"
+    echo -e "  ${YELLOW}Run: bash tests/xrd-transform/add-headers.sh${NC}"
+    FAILED=$((FAILED + 1))
+    echo ""
+    continue
+  fi
+
   # Run transform
   if ! "${TRANSFORM_SCRIPT}" "$fixture" > "$output_file" 2>&1; then
     echo -e "  ${RED}✗ Transform failed${NC}"
@@ -70,19 +80,25 @@ for fixture in "${FIXTURES_DIR}"/*.yaml; do
     continue
   fi
 
-  # Compare outputs using diff
-  if diff -u "${expected_file}" "${output_file}" > /dev/null 2>&1; then
+  # Strip header comments from expected file for comparison
+  # Remove everything from start until we see a line starting with "apiVersion:"
+  expected_file_stripped="${OUTPUT_DIR}/${test_name}.expected-stripped.yaml"
+  sed -n '/^apiVersion:/,$p' "${expected_file}" > "${expected_file_stripped}"
+
+  # Compare outputs using diff (comparing stripped expected vs actual output)
+  if diff -u "${expected_file_stripped}" "${output_file}" > /dev/null 2>&1; then
     echo -e "  ${GREEN}✓ Output matches expected${NC}"
     PASSED=$((PASSED + 1))
   else
     echo -e "  ${RED}✗ Output differs from expected${NC}"
     echo ""
     echo "  Differences:"
-    diff -u "${expected_file}" "${output_file}" | head -30 || true
+    diff -u "${expected_file_stripped}" "${output_file}" | head -30 || true
     echo ""
     echo -e "  ${YELLOW}Expected: ${expected_file}${NC}"
     echo -e "  ${YELLOW}Actual:   ${output_file}${NC}"
     echo -e "  ${YELLOW}To update expected output: cp ${output_file} ${expected_file}${NC}"
+    echo -e "  ${RED}⚠️  WARNING: Do NOT blindly update! Review changes carefully first.${NC}"
     FAILED=$((FAILED + 1))
   fi
 

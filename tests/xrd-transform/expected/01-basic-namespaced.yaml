@@ -1,3 +1,25 @@
+# ================================================================================================
+# EXPECTED TEST OUTPUT - DO NOT BLINDLY REGENERATE
+# ================================================================================================
+# This file defines the expected output for xrd-transform tests.
+#
+# ⚠️  IMPORTANT: Only update this file when:
+#   1. You've added NEW FEATURES that intentionally change output
+#   2. You've FIXED BUGS where the old output was incorrect
+#   3. You've MODIFIED TEMPLATES with a clear purpose
+#
+# 🚫 DO NOT simply copy from output/ without understanding the changes!
+#
+# Before updating:
+#   - Run: bash tests/xrd-transform/run-tests.sh
+#   - Review ALL differences carefully
+#   - Understand WHY each change occurred
+#   - Ensure both Template AND API entities are present
+#   - Document the reason in your commit message
+#
+# This header is validated by the test runner.
+# ================================================================================================
+
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
@@ -133,4 +155,73 @@ spec:
 
               Your Database resource has been added to the software catalog.
               You can now track, monitor, and manage it through Backstage.
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: databases-example-com-api
+  title: Database API
+  description: API specification for Database
+  tags:
+    - crossplane
+    - ingestor
+    - example-com
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: databases.example.com
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: platform-team
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Database API
+      version: v1alpha1
+      description: OpenAPI specification for Database
+    paths:
+      /databases:
+        get:
+          summary: List databases
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create Database
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: Database configuration
+                      properties:
+                        engine:
+                          type: string
+                          description: "Database engine type"
+                        size:
+                          type: string
+                          description: "Database size"
+                      required:
+                        - engine
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created
 

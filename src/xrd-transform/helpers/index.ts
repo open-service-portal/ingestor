@@ -161,6 +161,15 @@ export function createHelpers(): TemplateHelpers {
     getLabel: (xrd: any, key: string): string | undefined => {
       return xrd?.metadata?.labels?.[key];
     },
+
+    /**
+     * Check if any item in an array has a truthy value for a given property
+     * Usage: {{#if (hasAny properties "required")}}
+     */
+    hasAny: (array: any[], propertyName: string): boolean => {
+      if (!Array.isArray(array)) return false;
+      return array.some(item => item && item[propertyName]);
+    },
   };
 }
 

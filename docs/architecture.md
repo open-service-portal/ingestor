@@ -19,7 +19,7 @@ ingestor/
 │   │   │   ├── BackstageLink.ts  # Link interface for entities
 │   │   │   └── index.ts
 │   │   │
-│   │   ├── providers/            # Data fetching providers
+│   │   ├── data-providers/       # Data fetching providers
 │   │   │   ├── CRDDataProvider.ts           # Fetches CRD definitions
 │   │   │   ├── XRDDataProvider.ts           # Fetches XRD definitions
 │   │   │   ├── KubernetesDataProvider.ts    # Fetches K8s resources

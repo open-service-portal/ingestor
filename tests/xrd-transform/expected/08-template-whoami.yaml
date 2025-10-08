@@ -1,3 +1,25 @@
+# ================================================================================================
+# EXPECTED TEST OUTPUT - DO NOT BLINDLY REGENERATE
+# ================================================================================================
+# This file defines the expected output for xrd-transform tests.
+#
+# ⚠️  IMPORTANT: Only update this file when:
+#   1. You've added NEW FEATURES that intentionally change output
+#   2. You've FIXED BUGS where the old output was incorrect
+#   3. You've MODIFIED TEMPLATES with a clear purpose
+#
+# 🚫 DO NOT simply copy from output/ without understanding the changes!
+#
+# Before updating:
+#   - Run: bash tests/xrd-transform/run-tests.sh
+#   - Review ALL differences carefully
+#   - Understand WHY each change occurred
+#   - Ensure both Template AND API entities are present
+#   - Document the reason in your commit message
+#
+# This header is validated by the test runner.
+# ================================================================================================
+
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
@@ -125,4 +147,79 @@ spec:
 
               Your WhoAmIApp resource has been added to the software catalog.
               You can now track, monitor, and manage it through Backstage.
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: whoamiapps-openportal-dev-api
+  title: Who Am I App API
+  description: API specification for WhoAmIApp
+  tags:
+    - crossplane
+    - ingestor
+    - openportal-dev
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: whoamiapps.openportal.dev
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-team
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: WhoAmIApp API
+      version: v1alpha1
+      description: OpenAPI specification for WhoAmIApp
+    paths:
+      /whoamiapps:
+        get:
+          summary: List whoamiapps
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create WhoAmIApp
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: WhoAmIApp configuration
+                      properties:
+                        name:
+                          type: string
+                          description: "Application name (becomes subdomain, e.g., myapp.openportal.dev)"
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                          minLength: 1
+                          maxLength: 63
+                        replicas:
+                          type: number
+                          description: "Number of replicas"
+                          minimum: 1
+                          maximum: 3
+                        image:
+                          type: string
+                          description: "Container image to deploy"
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created
 
