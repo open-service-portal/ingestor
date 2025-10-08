@@ -256,10 +256,10 @@ kind: CompositeResourceDefinition
 metadata:
   name: databases.platform.io
   annotations:
+    backstage.io/template-api: "default"          # API docs
     backstage.io/template: "default"              # Main template
-    backstage.io/api-template: "default"          # API docs
-    backstage.io/parameters-template: "database"  # Custom form fields
-    backstage.io/steps-template: "gitops"         # Custom workflow
+    backstage.io/template-parameters: "database"  # Custom form fields
+    backstage.io/template-steps: "gitops"         # Custom workflow
     openportal.dev/tags: "database,storage"       # Comma-separated tags
 ```
 
@@ -350,7 +350,7 @@ Create custom templates for specific use cases:
    ```yaml
    metadata:
      annotations:
-       backstage.io/parameters-template: "database"
+       backstage.io/template-parameters: "database"
    ```
 
 4. **Configure plugin**:

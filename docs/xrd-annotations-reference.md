@@ -35,7 +35,7 @@ metadata:
 
 ---
 
-### `backstage.io/api-template`
+### `backstage.io/template-api`
 
 **Purpose:** Specifies the API documentation entity template.
 
@@ -47,7 +47,7 @@ metadata:
 ```yaml
 metadata:
   annotations:
-    backstage.io/api-template: "openapi-v3"
+    backstage.io/template-api: "openapi-v3"
 ```
 
 **Use Cases:**
@@ -57,7 +57,7 @@ metadata:
 
 ---
 
-### `backstage.io/parameters-template`
+### `backstage.io/template-parameters`
 
 **Purpose:** Specifies the template for scaffolder form parameters.
 
@@ -69,7 +69,7 @@ metadata:
 ```yaml
 metadata:
   annotations:
-    backstage.io/parameters-template: "database"
+    backstage.io/template-parameters: "database"
 ```
 
 **Use Cases:**
@@ -85,7 +85,7 @@ metadata:
 
 ---
 
-### `backstage.io/steps-template`
+### `backstage.io/template-steps`
 
 **Purpose:** Specifies the template for scaffolder workflow steps.
 
@@ -97,7 +97,7 @@ metadata:
 ```yaml
 metadata:
   annotations:
-    backstage.io/steps-template: "gitops"
+    backstage.io/template-steps: "gitops"
 ```
 
 **Use Cases:**
@@ -244,9 +244,9 @@ metadata:
   annotations:
     # Template Selection
     backstage.io/template: "default"
-    backstage.io/api-template: "default"
-    backstage.io/parameters-template: "database"
-    backstage.io/steps-template: "gitops"
+    backstage.io/template-api: "default"
+    backstage.io/template-parameters: "database"
+    backstage.io/template-steps: "gitops"
 
     # Metadata
     backstage.io/title: "PostgreSQL Database"
@@ -319,7 +319,7 @@ To use custom templates referenced by annotations:
    ```yaml
    metadata:
      annotations:
-       backstage.io/parameters-template: "database"
+       backstage.io/template-parameters: "database"
    ```
 
 ## CLI Usage with Annotations

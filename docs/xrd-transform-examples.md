@@ -329,11 +329,11 @@ metadata:
   annotations:
     # Main template selection
     backstage.io/template: "default"              # Main backstage template (optional)
-    backstage.io/api-template: "default"          # API doc template (optional)
+    backstage.io/template-api: "default"          # API doc template (optional)
 
     # Sub-template selection (modular architecture)
-    backstage.io/parameters-template: "default"   # Parameters section (optional)
-    backstage.io/steps-template: "default"        # Steps section (optional)
+    backstage.io/template-parameters: "default"   # Parameters section (optional)
+    backstage.io/template-steps: "default"        # Steps section (optional)
 ```
 
 **Available Templates:**
@@ -424,8 +424,8 @@ To create custom templates for your XRDs:
    metadata:
      name: databases.platform.io
      annotations:
-       backstage.io/parameters-template: "database"
-       backstage.io/steps-template: "gitops"
+       backstage.io/template-parameters: "database"
+       backstage.io/template-steps: "gitops"
    ```
 
 4. **Transform with custom templates:**
