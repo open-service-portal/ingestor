@@ -1,0 +1,45 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: databases.example.com
+  annotations:
+    backstage.io/description: "Database with multi-page wizard"
+    openportal.dev/template-parameters: "default,gitops"
+    openportal.dev/template-steps: "default"
+    openportal.dev/tags: "database,multi-step,multi-parameter"
+spec:
+  group: example.com
+  names:
+    kind: Database
+    plural: databases
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                engine:
+                  type: string
+                  description: Database engine
+                  enum:
+                    - postgres
+                    - mysql
+                    - mongodb
+                version:
+                  type: string
+                  description: Database version
+                  default: "latest"
+                storage:
+                  type: integer
+                  description: Storage size in GB
+                  minimum: 10
+                  maximum: 1000
+                  default: 20
+              required:
+                - engine

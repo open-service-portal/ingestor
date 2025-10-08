@@ -1,0 +1,161 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: applications-platform-com
+  title: Application
+  description: Create and manage Application resources
+  tags:
+    - crossplane
+    - platform-com
+    - application
+    - deployment
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: applications.platform.com
+    crossplane.io/xrd-group: platform.com
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  owner: platform-team
+  type: crossplane-resource
+  parameters:
+    - title: GitOps Configuration
+      description: Configure GitOps repository settings for PR-based deployment
+      properties:
+        gitopsOwner:
+          title: GitHub Organization/Owner
+          type: string
+          description: GitHub organization or user for the GitOps repository
+          default: open-service-portal
+          ui:help: 'Current default: open-service-portal'
+        gitopsRepo:
+          title: Repository Name
+          type: string
+          description: GitOps repository name where manifests will be stored
+          default: catalog-orders
+          ui:help: 'Current default: catalog-orders'
+        gitopsTargetBranch:
+          title: Target Branch
+          type: string
+          description: Target branch for pull requests
+          default: main
+          ui:help: 'Current default: main'
+  steps:
+    - id: generateManifest
+      name: Generate Kubernetes Resource Manifest
+      action: terasky:claim-template
+      input:
+        parameters: ${{ parameters }}
+        nameParam: name
+        namespaceParam: namespace
+        ownerParam: owner
+        excludeParams:
+          - owner
+          - name
+          - namespace
+          - gitopsOwner
+          - gitopsRepo
+          - gitopsTargetBranch
+        apiVersion: platform.com/v1alpha1
+        kind: Application
+        clusters:
+          - rancher-desktop
+        removeEmptyParams: true
+    - id: create-pull-request
+      name: Create Pull Request
+      action: publish:github:pull-request
+      input:
+        repoUrl: >-
+          github.com?owner=${{ parameters.gitopsOwner ||
+          '{{config.gitops.ordersRepo.owner}}' }}& repo=${{
+          parameters.gitopsRepo || '{{config.gitops.ordersRepo.repo}}' }}
+        branchName: ${{ "create-" + parameters.name + "-resource" }}
+        title: ${{ "Create " + parameters.name + " Resource" }}
+        description: Create Application resource ${{ parameters.name }}
+        targetBranchName: >-
+          ${{ parameters.gitopsTargetBranch ||
+          '{{config.gitops.ordersRepo.targetBranch}}' }}
+      output:
+        links:
+          - title: View Pull Request
+            icon: github
+            url: ${{ steps['create-pull-request'].output.remoteUrl }}
+        text:
+          - title: Pull Request Number
+            content: ${{ steps['create-pull-request'].output.pullRequestNumber }}
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: applications-platform-com-api
+  title: Application API
+  description: API specification for Application
+  tags:
+    - crossplane
+    - ingestor
+    - platform-com
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: applications.platform.com
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: platform-team
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Application API
+      version: v1alpha1
+      description: OpenAPI specification for Application
+    paths:
+      /applications:
+        get:
+          summary: List applications
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create Application
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: Application configuration
+                      properties:
+                        image:
+                          type: string
+                          description: "Container image"
+                        replicas:
+                          type: number
+                          description: "Number of replicas"
+                          minimum: 1
+                          maximum: 10
+                        port:
+                          type: number
+                          description: "Service port"
+                      required:
+                        - image
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created
+

@@ -1,0 +1,42 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: databases.example.com
+  annotations:
+    backstage.io/description: "Basic namespaced database provisioning"
+    openportal.dev/tags: "database,storage,sql"
+spec:
+  group: example.com
+  names:
+    kind: Database
+    plural: databases
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                engine:
+                  type: string
+                  description: Database engine type
+                  enum:
+                    - postgres
+                    - mysql
+                    - mongodb
+                  default: postgres
+                size:
+                  type: string
+                  description: Database size
+                  enum:
+                    - small
+                    - medium
+                    - large
+                  default: small
+              required:
+                - engine

@@ -1,0 +1,5 @@
+# Test outputs - regenerated on each run
+output/
+
+# Temporary config files
+temp-config.yaml

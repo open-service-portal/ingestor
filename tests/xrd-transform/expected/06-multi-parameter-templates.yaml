@@ -1,0 +1,233 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: databases-example-com
+  title: Database
+  description: Create and manage Database resources
+  tags:
+    - crossplane
+    - example-com
+    - database
+    - multi-step
+    - multi-parameter
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: databases.example.com
+    crossplane.io/xrd-group: example.com
+spec:
+  owner: platform-team
+  type: crossplane-resource
+  parameters:
+    - title: Resource Configuration
+      required:
+        - name
+        - namespace
+        - engine
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Name of the Database
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+        namespace:
+          title: Namespace
+          type: string
+          description: Kubernetes namespace
+          default: default
+        engine:
+          title: Engine
+          type: string
+          description: Database engine
+          enum:
+            - null
+            - null
+            - null
+        version:
+          title: Version
+          type: string
+          description: Database version
+          default: null
+        storage:
+          title: Storage
+          type: number
+          description: Storage size in GB
+          default: 20
+          minimum: 10
+          maximum: 1000
+    - title: GitOps Configuration
+      description: Configure GitOps repository settings for PR-based deployment
+      properties:
+        gitopsOwner:
+          title: GitHub Organization/Owner
+          type: string
+          description: GitHub organization or user for the GitOps repository
+          default: open-service-portal
+          ui:help: 'Current default: open-service-portal'
+        gitopsRepo:
+          title: Repository Name
+          type: string
+          description: GitOps repository name where manifests will be stored
+          default: catalog-orders
+          ui:help: 'Current default: catalog-orders'
+        gitopsTargetBranch:
+          title: Target Branch
+          type: string
+          description: Target branch for pull requests
+          default: main
+          ui:help: 'Current default: main'
+  steps:
+    - id: workflow-info
+      name: Direct Apply Workflow Information
+      action: debug:log
+      input:
+        message: |
+          ⚡ This template uses direct apply workflow:
+
+          1. Creates your Database resource immediately in the cluster
+          2. Registers the resource in the Backstage catalog
+
+          Your resource will be created as soon as you click Create.
+      output:
+        text:
+          - title: ⚡ Direct Apply Workflow
+            content: >
+              This template follows a **direct apply workflow** for immediate
+              resource creation:
+
+
+              **What happens when you click Create:**
+
+
+              1. **Create Resource Immediately** 🚀
+                 - Your Database resource is created directly in the Kubernetes cluster
+                 - No approval required - resource is active immediately
+                 - Applied to cluster: `rancher-desktop`
+                 - Created in namespace: `$`
+
+              2. **Register in Catalog** 📝
+                 - The resource is automatically registered in the Backstage software catalog
+                 - You can track and manage it through Backstage
+
+              **✅ Important**: Your resource is **created immediately** without
+              approval workflow.
+    - id: create-resource
+      name: Create Database
+      action: kube:apply
+      input:
+        manifest: |
+          apiVersion: example.com/v1alpha1
+          kind: Database
+          metadata:
+            name: ${{ parameters.name }}
+            namespace: ${{ parameters.namespace }}
+          spec: ${{ parameters }}
+        namespaced: true
+      output:
+        text:
+          - title: Resource Details
+            content: |
+              **Resource Created Successfully!** ✅
+
+              **Resource Information:**
+              - **Name**: `$`
+              - **Type**: Database
+              - **API Version**: example.com/v1alpha1
+              - **Cluster**: rancher-desktop
+              - **Namespace**: `$`
+
+              Your resource is now active in the cluster and ready to use.
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.create-resource.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+      output:
+        links:
+          - title: View in Catalog
+            icon: catalog
+            url: ${{ steps['register'].output.entityRef }}
+        text:
+          - title: Catalog Registration
+            content: |
+              **Registered in Backstage Catalog** 📝
+
+              Your Database resource has been added to the software catalog.
+              You can now track, monitor, and manage it through Backstage.
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: databases-example-com-api
+  title: Database API
+  description: API specification for Database
+  tags:
+    - crossplane
+    - ingestor
+    - example-com
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: databases.example.com
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: platform-team
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Database API
+      version: v1alpha1
+      description: OpenAPI specification for Database
+    paths:
+      /databases:
+        get:
+          summary: List databases
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create Database
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: Database configuration
+                      properties:
+                        engine:
+                          type: string
+                          description: "Database engine"
+                        version:
+                          type: string
+                          description: "Database version"
+                        storage:
+                          type: number
+                          description: "Storage size in GB"
+                          minimum: 10
+                          maximum: 1000
+                      required:
+                        - engine
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created
+

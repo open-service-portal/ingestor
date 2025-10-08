@@ -1,0 +1,51 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: buckets.storage.com
+  annotations:
+    backstage.io/description: "S3 bucket with complex property types"
+    openportal.dev/tags: "storage,s3,cloud"
+spec:
+  group: storage.com
+  names:
+    kind: Bucket
+    plural: buckets
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                region:
+                  type: string
+                  description: AWS region
+                  default: us-east-1
+                versioning:
+                  type: boolean
+                  description: Enable versioning
+                  default: false
+                tags:
+                  type: object
+                  description: Resource tags
+                  additionalProperties:
+                    type: string
+                lifecycleRules:
+                  type: array
+                  description: Lifecycle management rules
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      enabled:
+                        type: boolean
+                      daysToExpire:
+                        type: integer
+              required:
+                - region

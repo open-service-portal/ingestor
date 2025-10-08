@@ -1,0 +1,210 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: buckets-storage-com
+  title: Bucket
+  description: Create and manage Bucket resources
+  tags:
+    - crossplane
+    - storage-com
+    - storage
+    - s3
+    - cloud
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: buckets.storage.com
+    crossplane.io/xrd-group: storage.com
+spec:
+  owner: platform-team
+  type: crossplane-resource
+  parameters:
+    - title: Resource Configuration
+      required:
+        - name
+        - namespace
+        - region
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Name of the Bucket
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+        namespace:
+          title: Namespace
+          type: string
+          description: Kubernetes namespace
+          default: default
+        region:
+          title: Region
+          type: string
+          description: AWS region
+          default: null
+        versioning:
+          title: Versioning
+          type: boolean
+          description: Enable versioning
+        tags:
+          title: Tags
+          type: object
+          description: Resource tags
+        lifecycleRules:
+          title: LifecycleRules
+          type: array
+          description: Lifecycle management rules
+  steps:
+    - id: workflow-info
+      name: Direct Apply Workflow Information
+      action: debug:log
+      input:
+        message: |
+          ⚡ This template uses direct apply workflow:
+
+          1. Creates your Bucket resource immediately in the cluster
+          2. Registers the resource in the Backstage catalog
+
+          Your resource will be created as soon as you click Create.
+      output:
+        text:
+          - title: ⚡ Direct Apply Workflow
+            content: >
+              This template follows a **direct apply workflow** for immediate
+              resource creation:
+
+
+              **What happens when you click Create:**
+
+
+              1. **Create Resource Immediately** 🚀
+                 - Your Bucket resource is created directly in the Kubernetes cluster
+                 - No approval required - resource is active immediately
+                 - Applied to cluster: `rancher-desktop`
+                 - Created in namespace: `$`
+
+              2. **Register in Catalog** 📝
+                 - The resource is automatically registered in the Backstage software catalog
+                 - You can track and manage it through Backstage
+
+              **✅ Important**: Your resource is **created immediately** without
+              approval workflow.
+    - id: create-resource
+      name: Create Bucket
+      action: kube:apply
+      input:
+        manifest: |
+          apiVersion: storage.com/v1alpha1
+          kind: Bucket
+          metadata:
+            name: ${{ parameters.name }}
+            namespace: ${{ parameters.namespace }}
+          spec: ${{ parameters }}
+        namespaced: true
+      output:
+        text:
+          - title: Resource Details
+            content: |
+              **Resource Created Successfully!** ✅
+
+              **Resource Information:**
+              - **Name**: `$`
+              - **Type**: Bucket
+              - **API Version**: storage.com/v1alpha1
+              - **Cluster**: rancher-desktop
+              - **Namespace**: `$`
+
+              Your resource is now active in the cluster and ready to use.
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.create-resource.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+      output:
+        links:
+          - title: View in Catalog
+            icon: catalog
+            url: ${{ steps['register'].output.entityRef }}
+        text:
+          - title: Catalog Registration
+            content: |
+              **Registered in Backstage Catalog** 📝
+
+              Your Bucket resource has been added to the software catalog.
+              You can now track, monitor, and manage it through Backstage.
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: buckets-storage-com-api
+  title: Bucket API
+  description: API specification for Bucket
+  tags:
+    - crossplane
+    - ingestor
+    - storage-com
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: buckets.storage.com
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: platform-team
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Bucket API
+      version: v1alpha1
+      description: OpenAPI specification for Bucket
+    paths:
+      /buckets:
+        get:
+          summary: List buckets
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create Bucket
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: Bucket configuration
+                      properties:
+                        region:
+                          type: string
+                          description: "AWS region"
+                        versioning:
+                          type: boolean
+                          description: "Enable versioning"
+                        tags:
+                          type: object
+                          description: "Resource tags"
+                        lifecycleRules:
+                          type: array
+                          description: "Lifecycle management rules"
+                      required:
+                        - region
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created
+
