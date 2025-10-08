@@ -142,6 +142,6 @@ if ! $HAS_TOKEN && [ -n "${BACKSTAGE_TOKEN:-}" ]; then
     ARGS=("--token" "$BACKSTAGE_TOKEN" "${ARGS[@]}")
 fi
 
-# Run the export CLI using ts-node
+# Run the export CLI via bin script
 cd "$PLUGIN_DIR"
-npx ts-node --project tsconfig.cli.json src/backstage-export/cli/backstage-export-cli.ts "${ARGS[@]}"
+"${PLUGIN_DIR}/bin/backstage-export" "${ARGS[@]}"

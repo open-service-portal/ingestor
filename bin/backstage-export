@@ -5,5 +5,7 @@
  * This script uses ts-node to run the TypeScript source directly
  */
 
-require('ts-node/register');
+require('ts-node').register({
+  project: require('path').join(__dirname, '..', 'tsconfig.cli.json')
+});
 require('../src/backstage-export/cli/backstage-export-cli');

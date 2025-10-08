@@ -101,7 +101,5 @@ if [[ -n "$OUTPUT_DIR" ]] && [[ ! -d "$OUTPUT_DIR" ]]; then
     mkdir -p "$OUTPUT_DIR"
 fi
 
-# Run the CLI via ts-node
-npx ts-node --project tsconfig.cli.json \
-    src/xrd-transform/cli/xrd-transform-cli.ts \
-    "${ARGS[@]}"
+# Run the CLI via bin script
+"${PLUGIN_DIR}/bin/ingestor" "${ARGS[@]}"

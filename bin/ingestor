@@ -6,5 +6,7 @@
  * (The old ingestor CLI was removed during refactoring)
  */
 
-require('ts-node/register');
+require('ts-node').register({
+  project: require('path').join(__dirname, '..', 'tsconfig.cli.json')
+});
 require('../src/xrd-transform/cli/xrd-transform-cli');
