@@ -1,92 +1,3 @@
-'0':
-  id: workflow-info
-  name: GitOps Workflow Information
-  action: debug:log
-  input:
-    message: |
-      🔄 This template uses GitOps workflow with Pull Request approval:
-
-      1. Generates your ManagedNamespace resource manifest
-      2. Creates a Pull Request in the GitOps repository
-      3. Flux deploys the resource after PR is merged
-
-      Your resource will be created after the PR is approved and merged.
-'1':
-  id: generateManifest
-  name: Generate Kubernetes Resource Manifest
-  action: terasky:claim-template
-  input:
-    parameters: ${{ parameters }}
-    nameParam: name
-    namespaceParam: ''
-    ownerParam: owner
-    excludeParams:
-      - owner
-      - namespace
-      - gitopsOwner
-      - gitopsRepo
-      - gitopsTargetBranch
-    apiVersion: openportal.dev/v1alpha1
-    kind: ManagedNamespace
-    clusters:
-      - rancher-desktop
-    removeEmptyParams: true
-  output:
-    text:
-      - title: 📝 Generated Manifest
-        content: |
-          **Kubernetes Resource Manifest Generated Successfully!** ✅
-
-          **Resource Information:**
-          - **Name**: `${{ parameters.name }}`
-          - **Type**: ManagedNamespace
-          - **API Version**: openportal.dev/v1alpha1
-          - **Cluster**: rancher-desktop
-          - **Scope**: Cluster-wide
-
-          **Next Step**: Creating Pull Request in GitOps repository...
-'2':
-  id: create-pull-request
-  name: Create Pull Request
-  action: publish:github:pull-request
-  input:
-    repoUrl: github.com?owner=open-service-portal&repo=catalog-orders
-    branchName: ${{ "create-" + parameters.name + "-resource" }}
-    title: ${{ "Create " + parameters.name + " Resource" }}
-    description: Create ManagedNamespace resource ${{ parameters.name }}
-    targetBranchName: main
-  output:
-    links:
-      - title: View Pull Request
-        icon: github
-        url: ${{ steps['create-pull-request'].output.remoteUrl }}
-    text:
-      - title: 🔀 Pull Request Created
-        content: >
-          **Pull Request Created Successfully!** ✅
-
-
-          Your ManagedNamespace resource manifest has been submitted for review.
-
-
-          **GitOps Workflow:**
-
-          1. ✅ **Manifest Generated** - Your resource configuration is ready
-
-          2. ✅ **Pull Request Created** - Submitted to
-          open-service-portal/catalog-orders
-
-          3. ⏳ **Awaiting Approval** - Team will review and approve the PR
-
-          4. ⏳ **Flux Deployment** - After merge, Flux will deploy to cluster
-          rancher-desktop
-
-
-          **⚠️ Important**: Your resource will be created **after the PR is
-          approved and merged**, not immediately.
-
-
-          Click "View Pull Request" above to monitor the approval process.
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
@@ -122,24 +33,113 @@ spec:
           type: string
           description: Name of the ManagedNamespace
           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-links:
-  - title: Download YAML Manifest
-    icon: docs
-    url: >-
-      ${{ "data:application/yaml;charset=utf-8," +
-      encodeURIComponent(steps['generateManifest'].output.manifest || '') }}
-  - title: View Pull Request
-    icon: github
-    url: ${{ steps['create-pull-request'].output.remoteUrl }}
-text:
-  - title: 📋 GitOps Workflow Summary
-    content: |
-      **Your ManagedNamespace request has been submitted!** ✅
+  steps:
+    - id: workflow-info
+      name: GitOps Workflow Information
+      action: debug:log
+      input:
+        message: |
+          🔄 This template uses GitOps workflow with Pull Request approval:
 
-      **GitOps Repository:** open-service-portal/catalog-orders
-      **Target Cluster:** rancher-desktop
+          1. Generates your ManagedNamespace resource manifest
+          2. Creates a Pull Request in the GitOps repository
+          3. Flux deploys the resource after PR is merged
 
-      Your resource will be deployed after the PR is reviewed and merged.
+          Your resource will be created after the PR is approved and merged.
+    - id: generateManifest
+      name: Generate Kubernetes Resource Manifest
+      action: terasky:claim-template
+      input:
+        parameters: ${{ parameters }}
+        nameParam: name
+        namespaceParam: ''
+        ownerParam: owner
+        excludeParams:
+          - owner
+          - namespace
+          - gitopsOwner
+          - gitopsRepo
+          - gitopsTargetBranch
+        apiVersion: openportal.dev/v1alpha1
+        kind: ManagedNamespace
+        clusters:
+          - rancher-desktop
+        removeEmptyParams: true
+      output:
+        text:
+          - title: 📝 Generated Manifest
+            content: |
+              **Kubernetes Resource Manifest Generated Successfully!** ✅
+
+              **Resource Information:**
+              - **Name**: `${{ parameters.name }}`
+              - **Type**: ManagedNamespace
+              - **API Version**: openportal.dev/v1alpha1
+              - **Cluster**: rancher-desktop
+              - **Scope**: Cluster-wide
+
+              **Next Step**: Creating Pull Request in GitOps repository...
+    - id: create-pull-request
+      name: Create Pull Request
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?owner=open-service-portal&repo=catalog-orders
+        branchName: ${{ "create-" + parameters.name + "-resource" }}
+        title: ${{ "Create " + parameters.name + " Resource" }}
+        description: Create ManagedNamespace resource ${{ parameters.name }}
+        targetBranchName: main
+      output:
+        links:
+          - title: View Pull Request
+            icon: github
+            url: ${{ steps['create-pull-request'].output.remoteUrl }}
+        text:
+          - title: 🔀 Pull Request Created
+            content: >
+              **Pull Request Created Successfully!** ✅
+
+
+              Your ManagedNamespace resource manifest has been submitted for
+              review.
+
+
+              **GitOps Workflow:**
+
+              1. ✅ **Manifest Generated** - Your resource configuration is ready
+
+              2. ✅ **Pull Request Created** - Submitted to
+              open-service-portal/catalog-orders
+
+              3. ⏳ **Awaiting Approval** - Team will review and approve the PR
+
+              4. ⏳ **Flux Deployment** - After merge, Flux will deploy to
+              cluster rancher-desktop
+
+
+              **⚠️ Important**: Your resource will be created **after the PR is
+              approved and merged**, not immediately.
+
+
+              Click "View Pull Request" above to monitor the approval process.
+  output:
+    links:
+      - title: Download YAML Manifest
+        icon: docs
+        url: >-
+          ${{ "data:application/yaml;charset=utf-8," +
+          encodeURIComponent(steps['generateManifest'].output.manifest || '') }}
+      - title: View Pull Request
+        icon: github
+        url: ${{ steps['create-pull-request'].output.remoteUrl }}
+    text:
+      - title: 📋 GitOps Workflow Summary
+        content: |
+          **Your ManagedNamespace request has been submitted!** ✅
+
+          **GitOps Repository:** open-service-portal/catalog-orders
+          **Target Cluster:** rancher-desktop
+
+          Your resource will be deployed after the PR is reviewed and merged.
 
 ---
 apiVersion: backstage.io/v1alpha1
