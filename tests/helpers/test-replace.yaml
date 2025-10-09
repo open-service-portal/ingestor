@@ -1,0 +1,17 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: replacetest.example.com
+spec:
+  scope: Cluster
+  group: my.example.group.com
+  names:
+    kind: ReplaceTest
+    plural: replacetests
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object

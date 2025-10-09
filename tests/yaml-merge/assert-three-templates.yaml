@@ -1,8 +1,8 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: namespaced-test-example-com
-  title: NamespacedResource
+  name: threeway-test-example-com
+  title: ThreeWayMerge
 spec:
   owner: test-owner
   type: test-resource
@@ -19,6 +19,10 @@ spec:
     links:
       - title: Test Link
         url: test-url
+      - title: Download
+        url: block-download-url
+      - title: Pull Request
+        url: block-pr-url
     text:
       - title: Default Text
         content: Default content

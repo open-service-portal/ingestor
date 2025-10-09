@@ -1,0 +1,19 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: owned.test.example.com
+  annotations:
+    backstage.io/owner: "database-team"
+spec:
+  scope: Cluster
+  group: test.example.com
+  names:
+    kind: OwnedResource
+    plural: ownedresources
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object

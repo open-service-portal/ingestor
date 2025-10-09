@@ -1,8 +1,8 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: namespaced-test-example-com
-  title: NamespacedResource
+  name: described-test-example-com
+  title: DescribedResource
 spec:
   owner: test-owner
   type: test-resource

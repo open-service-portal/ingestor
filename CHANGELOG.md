@@ -42,7 +42,16 @@ All notable changes to the Backstage Ingestor Plugin will be documented in this 
   - `tests/templates/` - Minimal test templates for fast, focused testing
   - Unified test runner `run-tests.sh` with automatic scenario discovery
   - E2E tests use production templates, feature tests use minimal test templates
-  - Current scenarios: scope, multi-templates (3 tests passing)
+
+#### Comprehensive Test Coverage
+- **7 Test Scenarios** covering all transform engine features (15 tests, all passing ✅)
+  - `scope/` (2 tests) - Namespaced vs Cluster resource detection
+  - `multi-templates/` (1 test) - Comma-separated template composition
+  - `yaml-merge/` (1 test) - Three-way merge, nested object merging
+  - `annotations/` (3 tests) - XRD annotation handling (tags, description, owner)
+  - `helpers/` (3 tests) - Handlebars helper functions (slugify, replace, conditionals)
+  - `properties/` (3 tests) - Property extraction (types, required, enum)
+  - `e2e/` (2 tests) - Production template validation (namespace, whoami)
 
 ### Fixed
 - **GitOps Template Outputs** - Fixed missing output display in Backstage UI

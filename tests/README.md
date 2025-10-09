@@ -37,22 +37,17 @@ The test runner matches `test-*.yaml` with `assert-*.yaml` by name.
 
 Each scenario directory contains related test cases:
 
-| Scenario | Purpose | Test Count |
-|----------|---------|------------|
-| `scope` | Namespaced vs Cluster resources | 2 |
-| `multi-templates` | Comma-separated template composition | 1+ |
-| `helpers` | Handlebars helper functions | TBD |
-| `conditionals` | If/else logic in templates | TBD |
-| `parameters` | Parameter template variations | TBD |
-| `steps` | Step template variations | TBD |
-| `output` | Output template variations | TBD |
-| `gitops` | GitOps workflow tests | TBD |
-| `annotations` | XRD annotation handling | TBD |
-| `metadata` | Metadata extraction | TBD |
-| `variables` | Variable substitution | TBD |
-| `building-blocks` | Template building blocks | TBD |
-| `edge-cases` | Error handling, edge cases | TBD |
-| `e2e` | End-to-end with production templates | 2 |
+| Scenario | Purpose | Test Count | Focus |
+|----------|---------|------------|-------|
+| `scope` | Namespaced vs Cluster resources | 2 | Transform engine scope detection |
+| `multi-templates` | Comma-separated template composition | 1 | YAML merge with multiple templates |
+| `yaml-merge` | YAML merge edge cases | 1 | Three-way merge, nested objects |
+| `annotations` | XRD annotation handling | 3 | Tags, description, owner annotations |
+| `helpers` | Handlebars helper functions | 3 | Slugify, replace, conditionals |
+| `properties` | Property extraction & types | 3 | String, integer, boolean, array, enum, required |
+| `e2e` | End-to-end with production templates | 2 | Namespace, Whoami real-world validation |
+
+**Total**: 7 scenarios, 15 tests, all passing ✅
 
 ## Running Tests
 

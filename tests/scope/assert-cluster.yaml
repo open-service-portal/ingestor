@@ -19,4 +19,7 @@ spec:
     links:
       - title: Test Link
         url: test-url
+    text:
+      - title: Default Text
+        content: Default content
 
