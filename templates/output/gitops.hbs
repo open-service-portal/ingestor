@@ -1,0 +1,31 @@
+{{!--
+  GitOps Output Template (Composite)
+  Uses building blocks: download-manifest, pr-link, gitops-summary
+
+  Note: This template is now a composite that can be replaced with:
+  openportal.dev/template-output: "download-manifest,pr-link,gitops-summary"
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - helpers: Utility functions
+  - source: Source of the XRD
+  - timestamp: When extracted
+  - config: Configuration from app-config
+--}}
+links:
+  - title: Download YAML Manifest
+    icon: docs
+    url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['generateManifest'].output.manifest || '')"}}}
+  - title: View Pull Request
+    icon: github
+    url: {{{backstageVar "steps['create-pull-request'].output.remoteUrl"}}}
+text:
+  - title: "📋 GitOps Workflow Summary"
+    content: |
+      **Your {{xrd.spec.names.kind}} request has been submitted!** ✅
+
+      **GitOps Repository:** {{config.gitops.owner}}/{{config.gitops.repo}}
+      **Target Cluster:** {{metadata.cluster}}
+
+      Your resource will be deployed after the PR is reviewed and merged.

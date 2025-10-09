@@ -1,0 +1,16 @@
+{{!--
+  Default Output Template
+  Generates the output section for direct apply workflow
+  Shows download link for generated manifest
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - helpers: Utility functions
+  - source: Source of the XRD
+  - timestamp: When extracted
+  - config: Configuration from app-config
+--}}
+links:
+  - title: Download YAML Manifest
+    url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['create-resource'].output.manifest || '')"}}}

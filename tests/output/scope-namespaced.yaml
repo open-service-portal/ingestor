@@ -1,0 +1,22 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: namespaced-test-example-com
+  title: NamespacedResource
+spec:
+  owner: test-owner
+  type: test-resource
+  parameters:
+    - title: Test Parameters
+      properties:
+        name:
+          type: string
+  steps:
+    - id: test-step
+      name: Test Step
+      action: test:action
+  output:
+    links:
+      - title: Test Link
+        url: test-url
+

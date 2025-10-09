@@ -1,0 +1,18 @@
+{{!--
+  GitOps Summary Output Block
+  Provides summary information about the GitOps workflow
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - config: Configuration from app-config
+--}}
+text:
+  - title: "📋 GitOps Workflow Summary"
+    content: |
+      **Your {{xrd.spec.names.kind}} request has been submitted!** ✅
+
+      **GitOps Repository:** {{config.gitops.owner}}/{{config.gitops.repo}}
+      **Target Cluster:** {{metadata.cluster}}
+
+      Your resource will be deployed after the PR is reviewed and merged.

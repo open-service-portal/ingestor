@@ -6,13 +6,38 @@ All notable changes to the Backstage Ingestor Plugin will be documented in this 
 
 ### Added
 
-#### Testing Infrastructure
-- **XRD Transform Test Suite** - Comprehensive regression testing for template generation
-  - Diff-based testing with expected output validation
-  - 8 test cases covering namespaced, cluster-scoped, GitOps, and complex properties
-  - Protective headers on expected files to prevent accidental corruption
-  - Test runner script `run-tests.sh` at plugin root for easy execution
-  - Test fixtures and expected outputs serve as living documentation
+#### Template System Enhancements
+- **Template-Level Output Section** - Outputs now display in final results panel after template execution
+  - Created `templates/output/` directory with reusable output blocks
+  - `download-manifest.hbs` - Manifest download link with data URL
+  - `pr-link.hbs` - Pull request link for GitOps workflows
+  - `gitops-summary.hbs` - GitOps workflow summary information
+  - Output section integrated into main backstage template structure
+
+#### Multi-Template Building Block Pattern
+- **Comma-Separated Template Composition** - Mix and match template building blocks
+  - Supports all three template types: parameters, steps, and output
+  - Usage: `openportal.dev/template-output: "download,pr,summary"`
+  - YAML-aware deep merge algorithm properly combines multiple templates
+  - Arrays are concatenated (e.g., multiple links combined under single `links:` key)
+  - Objects are merged recursively with conflict resolution
+  - New methods: `renderMultipleSubTemplates()`, `deepMergeYaml()`
+
+#### Testing Infrastructure Overhaul
+- **Flattened Test Structure** - Scenario-based organization with clear naming conventions
+  - `tests/<scenario>/test-<case>.yaml` - Test fixtures
+  - `tests/<scenario>/assert-<case>.yaml` - Expected outputs
+  - `tests/output/` - Shared generated output directory
+  - `tests/templates/` - Minimal test templates for fast, focused testing
+  - Unified test runner `run-tests.sh` with automatic scenario discovery
+  - E2E tests use production templates, feature tests use minimal test templates
+  - Current scenarios: scope, multi-templates (3 tests passing)
+
+### Fixed
+- **GitOps Template Outputs** - Fixed missing output display in Backstage UI
+  - Removed unsupported output sections from `debug:log` action
+  - Added proper outputs to `generateManifest` and `create-pull-request` steps
+  - Enhanced PR creation step with visual workflow status indicators
 
 #### Scripts and Tools
 - **xrd-transform.sh wrapper script** - Shell script for easy CLI access

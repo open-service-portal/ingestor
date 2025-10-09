@@ -1,0 +1,13 @@
+{{!--
+  Pull Request Link Output Block
+  Provides a link to view the created pull request
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - config: Configuration from app-config
+--}}
+links:
+  - title: View Pull Request
+    icon: github
+    url: {{{backstageVar "steps['create-pull-request'].output.remoteUrl"}}}

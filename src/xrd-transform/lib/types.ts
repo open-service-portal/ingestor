@@ -44,6 +44,8 @@ export interface TemplateConfig {
   parametersTemplate?: string;
   /** Steps section template (openportal.dev/steps-template) */
   stepsTemplate?: string;
+  /** Output section template (openportal.dev/output-template) */
+  outputTemplate?: string;
 }
 
 export interface TemplateHelpers {

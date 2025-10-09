@@ -13,13 +13,15 @@ Originally forked from [@terasky/backstage-plugin-kubernetes-ingestor](https://g
 - **Custom Resource Support**: Extensible to support any Kubernetes custom resource
 - **Entity Metadata Enrichment**: Automatically adds relevant Kubernetes metadata to catalog entities
 - **XRD Template Generation**: Automatically generates Backstage templates for Crossplane XRDs using Handlebars
-- **Modular Template System**: Separate templates for parameters, steps, and API documentation
+- **Modular Template System**: Separate templates for parameters, steps, output, and API documentation
+- **Multi-Template Composition**: Comma-separated template building blocks with YAML-aware merging
+- **Template-Level Outputs**: Results panel in Backstage UI with download links and PR status
 - **GitOps Integration**: Support for PR-based template registration (GitHub/GitLab/Bitbucket)
 - **Context-Aware CLI**: Automatically detects kubectl context and loads cluster-specific configuration
 - **CLI Tools**: Command-line tools for transformation, ingestion, and export operations
 - **Unified Architecture**: Same ingestion engine used by both CLI and runtime
 - **XR Status Links**: Automatic extraction and generation of links from Kubernetes resource status fields
-- **Test Infrastructure**: Comprehensive regression testing for template generation
+- **Test Infrastructure**: Flattened scenario-based testing with 3+ passing tests
 
 ## Installation
 

@@ -22,15 +22,21 @@ plugins/ingestor/
 ├── scripts/                      # Shell wrappers
 │   ├── xrd-transform.sh          # XRD transform wrapper → bin/ingestor
 │   └── backstage-export.sh       # Export wrapper → bin/backstage-export
-├── templates/                    # Handlebars templates
-│   ├── default.hbs               # Main template generation
-│   ├── gitops.hbs                # GitOps step template
+├── templates/                    # Production Handlebars templates
+│   ├── backstage/default.hbs     # Main template structure
+│   ├── parameters/               # Parameter templates
+│   ├── steps/                    # Step templates (direct, gitops)
+│   ├── output/                   # Output templates (download, pr, summary)
 │   └── README.md                 # Template documentation
-├── tests/xrd-transform/          # Regression test suite
-│   ├── fixtures/                 # Test XRD inputs
-│   ├── expected/                 # Expected outputs (committed)
-│   └── output/                   # Generated outputs (gitignored)
-├── run-tests.sh                  # Test runner (in plugin root)
+├── tests/                        # Test suite (flattened structure)
+│   ├── output/                   # Generated test outputs (gitignored)
+│   ├── templates/                # Minimal test templates
+│   ├── scope/                    # Scenario: Resource scope
+│   │   ├── test-namespaced.yaml  # Test fixture
+│   │   └── assert-namespaced.yaml # Expected output
+│   ├── multi-templates/          # Scenario: Multi-template composition
+│   └── ...                       # More scenarios
+├── run-tests.sh                  # Test runner (discovers all scenarios)
 ├── tsconfig.cli.json             # TypeScript config for CLI (CommonJS)
 └── docs/                         # Comprehensive documentation
 ```
@@ -48,13 +54,21 @@ plugins/ingestor/
 # Run XRD transform regression tests
 ./run-tests.sh
 
-# Expected output: All tests pass
+# Expected output: All scenarios pass
 # ═══════════════════════════════════════════════════════════
-#   Test Summary
+#   Summary
 # ═══════════════════════════════════════════════════════════
-# Total tests:  8
-# Passed:       8
-# Failed:       0
+# Scenarios: 2
+# Total:     3
+# Passed:    3
+# Failed:    0
+```
+
+**Test Structure:**
+- `tests/<scenario>/test-<case>.yaml` - Test fixtures
+- `tests/<scenario>/assert-<case>.yaml` - Expected outputs
+- `tests/output/` - Generated outputs (gitignored)
+- `tests/templates/` - Minimal test templates (fast, focused)
 ```
 
 ### XRD Transformation (Template Ingestion)

@@ -71,6 +71,24 @@ export class XRDTransformer {
       return `\${{ ${varName} }}`;
     });
 
+    // Helper to generate Backstage expression with config fallback
+    // Usage: {{backstageConfigFallback "parameters.gitopsOwner" config.gitops.owner}}
+    // Output: ${{ parameters.gitopsOwner || 'open-service-portal' }}
+    this.handlebars.registerHelper('backstageConfigFallback', (paramPath: string, configValue: any) => {
+      // Build the expression with the actual config value (evaluated during template generation)
+      return `\${{ ${paramPath} || '${configValue || ''}' }}`;
+    });
+
+    // Helper to build GitHub repoUrl with config fallbacks
+    // Usage: {{gitopsRepoUrl config.gitops}}
+    // Output: "github.com?owner=${{ parameters.gitopsOwner || 'owner' }}&repo=${{ parameters.gitopsRepo || 'repo' }}"
+    this.handlebars.registerHelper('gitopsRepoUrl', (gitopsConfig: any) => {
+      const owner = gitopsConfig?.owner || '';
+      const repo = gitopsConfig?.repo || '';
+      // Wrap in quotes to prevent YAML folding and keep expression on single line
+      return `"github.com?owner=\${{ parameters.gitopsOwner || '${owner}' }}&repo=\${{ parameters.gitopsRepo || '${repo}' }}"`;
+    });
+
     // String manipulation helpers
     this.handlebars.registerHelper('split', (str: string, delimiter: string) => {
       if (!str) return [];
@@ -80,6 +98,12 @@ export class XRDTransformer {
     this.handlebars.registerHelper('trim', (str: string) => {
       if (!str) return '';
       return str.trim();
+    });
+
+    this.handlebars.registerHelper('concat', (...args: any[]) => {
+      // Remove the Handlebars options object (last argument)
+      const strings = args.slice(0, -1);
+      return strings.join('');
     });
 
     this.handlebars.registerHelper('replace', (str: string, search: string, replace: string) => {
@@ -114,18 +138,26 @@ export class XRDTransformer {
       const backstageTemplateName = templateConfig.backstageTemplate || 'default';
       const parametersTemplateName = templateConfig.parametersTemplate || 'default';
       const stepsTemplateName = templateConfig.stepsTemplate || 'default';
+      const outputTemplateName = templateConfig.outputTemplate || stepsTemplateName; // Default to same as steps
 
-      // Render sub-templates (parameters and steps)
-      const parametersRendered = await this.renderSubTemplate(
+      // Render sub-templates (parameters, steps, and output)
+      // All support comma-separated building blocks (e.g., "metadata,crossplane" or "gitops,download")
+      const parametersRendered = await this.renderMultipleSubTemplates(
         'parameters',
         parametersTemplateName,
-        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp }
+        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp, ...options?.context }
       );
 
-      const stepsRendered = await this.renderSubTemplate(
+      const stepsRendered = await this.renderMultipleSubTemplates(
         'steps',
         stepsTemplateName,
-        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp }
+        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp, ...options?.context }
+      );
+
+      const outputRendered = await this.renderMultipleSubTemplates(
+        'output',
+        outputTemplateName,
+        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp, ...options?.context }
       );
 
       // Prepare template context with rendered sub-templates
@@ -137,6 +169,7 @@ export class XRDTransformer {
         timestamp: xrdData.timestamp,
         parametersRendered,  // Pre-rendered parameters section
         stepsRendered,       // Pre-rendered steps section
+        outputRendered,      // Pre-rendered output section
         ...options?.context,
       };
 
@@ -199,6 +232,7 @@ export class XRDTransformer {
       apiTemplate: this.templateNameOverride || annotations['openportal.dev/template-api'],
       parametersTemplate: this.templateNameOverride || annotations['openportal.dev/template-parameters'],
       stepsTemplate: this.templateNameOverride || annotations['openportal.dev/template-steps'],
+      outputTemplate: this.templateNameOverride || annotations['openportal.dev/template-output'],
     };
   }
 
@@ -218,10 +252,91 @@ export class XRDTransformer {
   }
 
   /**
-   * Render a sub-template (parameters or steps)
+   * Render multiple comma-separated sub-templates and merge them
+   * Supports building block pattern like "gitops,download" or "metadata,crossplane"
+   */
+  private async renderMultipleSubTemplates(
+    type: 'parameters' | 'steps' | 'output',
+    templateNames: string,
+    context: any
+  ): Promise<string> {
+    // Split by comma and trim whitespace
+    const names = templateNames.split(',').map(n => n.trim()).filter(n => n.length > 0);
+
+    // Single template - no merging needed
+    if (names.length === 1) {
+      return this.renderSubTemplate(type, names[0], context);
+    }
+
+    // Render each template
+    const rendered = await Promise.all(
+      names.map(name => this.renderSubTemplate(type, name, context))
+    );
+
+    // Parse each YAML string and merge
+    const parsed = rendered.map(yamlStr => {
+      try {
+        return yaml.load(yamlStr.trim()) || {};
+      } catch (error) {
+        console.error(`Failed to parse template output: ${error}`);
+        return {};
+      }
+    });
+
+    // Deep merge all parsed structures
+    const merged = this.deepMergeYaml(parsed);
+
+    // Serialize back to YAML string
+    return yaml.dump(merged, { lineWidth: -1, noRefs: true });
+  }
+
+  /**
+   * Deep merge multiple YAML objects
+   * Arrays are concatenated, objects are merged recursively
+   */
+  private deepMergeYaml(objects: any[]): any {
+    if (objects.length === 0) return {};
+    if (objects.length === 1) return objects[0];
+
+    const result: any = {};
+
+    for (const obj of objects) {
+      if (!obj || typeof obj !== 'object') continue;
+
+      for (const key in obj) {
+        if (!obj.hasOwnProperty(key)) continue;
+
+        const value = obj[key];
+
+        if (!(key in result)) {
+          // New key - just set it
+          result[key] = value;
+        } else if (Array.isArray(result[key]) && Array.isArray(value)) {
+          // Both arrays - concatenate
+          result[key] = [...result[key], ...value];
+        } else if (
+          typeof result[key] === 'object' &&
+          !Array.isArray(result[key]) &&
+          typeof value === 'object' &&
+          !Array.isArray(value)
+        ) {
+          // Both objects - merge recursively
+          result[key] = this.deepMergeYaml([result[key], value]);
+        } else {
+          // Conflict - later value wins
+          result[key] = value;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Render a sub-template (parameters, steps, or output)
    */
   private async renderSubTemplate(
-    type: 'parameters' | 'steps',
+    type: 'parameters' | 'steps' | 'output',
     templateName: string,
     context: any
   ): Promise<string> {
