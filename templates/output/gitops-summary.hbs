@@ -7,12 +7,14 @@
   - metadata: Extraction metadata
   - config: Configuration from app-config
 --}}
-text:
-  - title: "📋 GitOps Workflow Summary"
-    content: |
-      **Your {{xrd.spec.names.kind}} request has been submitted!** ✅
+spec:
+  output:
+    text:
+      - title: "📋 GitOps Workflow Summary"
+        content: |
+          **Your {{xrd.spec.names.kind}} request has been submitted!** ✅
 
-      **GitOps Repository:** {{config.gitops.owner}}/{{config.gitops.repo}}
-      **Target Cluster:** {{metadata.cluster}}
+          **GitOps Repository:** {{config.gitops.owner}}/{{config.gitops.repo}}
+          **Target Cluster:** {{metadata.cluster}}
 
-      Your resource will be deployed after the PR is reviewed and merged.
+          Your resource will be deployed after the PR is reviewed and merged.

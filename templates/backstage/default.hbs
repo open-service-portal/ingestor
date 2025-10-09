@@ -33,12 +33,3 @@ metadata:
 spec:
   owner: {{#if (getAnnotation xrd "backstage.io/owner")}}{{getAnnotation xrd "backstage.io/owner"}}{{else}}platform-team{{/if}}
   type: crossplane-resource
-
-  parameters:
-{{{indent parametersRendered 4}}}
-
-  steps:
-{{{indent stepsRendered 4}}}
-
-  output:
-{{{indent outputRendered 4}}}

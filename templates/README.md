@@ -31,13 +31,25 @@ templates/
 
 ## How Templates Work
 
-### 1. Modular Architecture
+### 1. Self-Contained YAML Merge Architecture
 
-The transform uses a multi-stage rendering process:
+The transform uses a **YAML-aware merge** process where each template is self-contained:
 
-1. **Parameters Template** is rendered first → produces form fields
-2. **Steps Template** is rendered second → produces workflow
-3. **Main Template** combines everything → produces final entity
+1. **Main Template** is rendered → produces base structure (metadata + `spec.owner/type`)
+2. **Sub-Templates** are rendered → each produces complete `spec` sections:
+   - Parameters template → `spec.parameters: [...]`
+   - Steps template → `spec.steps: [...]`
+   - Output template → `spec.output: {...}`
+3. **YAML Merge** combines all templates:
+   - Objects are merged recursively
+   - Arrays are concatenated
+   - Later values win on conflicts
+
+**Benefits:**
+- Sub-templates are self-contained and show their complete structure
+- No manual indentation needed
+- Multi-template composition works seamlessly
+- Building blocks can be mixed and matched
 
 ### 2. Template Selection
 
@@ -88,14 +100,7 @@ All templates have access to:
 }
 ```
 
-Additionally, the main template receives:
-
-```typescript
-{
-  parametersRendered: string,  // Pre-rendered parameters section
-  stepsRendered: string,       // Pre-rendered steps section
-}
-```
+**Note:** Sub-templates no longer need to be indented or embedded in the main template. Each template provides its own complete YAML structure, and the transform engine merges them automatically.
 
 ### 4. Configuration
 

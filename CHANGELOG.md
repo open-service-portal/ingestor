@@ -4,6 +4,17 @@ All notable changes to the Backstage Ingestor Plugin will be documented in this 
 
 ## [Unreleased]
 
+### Changed
+
+#### Self-Contained Template Architecture
+- **YAML Merge at Template Level** - Sub-templates now contain full YAML structure (`spec.parameters`, `spec.steps`, `spec.output`)
+  - Main template provides base structure (metadata + `spec.owner/type`)
+  - Sub-templates provide complete `spec` sections with full context
+  - Transform engine merges all templates using YAML-aware deep merge
+  - No more manual indentation with `{{{indent ...}}}` helper
+  - Sub-templates are self-contained and reusable across contexts
+  - Cleaner, more maintainable template code
+
 ### Added
 
 #### Template System Enhancements

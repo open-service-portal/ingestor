@@ -11,6 +11,8 @@
   - timestamp: When extracted
   - config: Configuration from app-config
 --}}
-links:
-  - title: Download YAML Manifest
-    url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['create-resource'].output.manifest || '')"}}}
+spec:
+  output:
+    links:
+      - title: Download YAML Manifest
+        url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['create-resource'].output.manifest || '')"}}}

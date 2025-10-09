@@ -140,45 +140,53 @@ export class XRDTransformer {
       const stepsTemplateName = templateConfig.stepsTemplate || 'default';
       const outputTemplateName = templateConfig.outputTemplate || stepsTemplateName; // Default to same as steps
 
-      // Render sub-templates (parameters, steps, and output)
-      // All support comma-separated building blocks (e.g., "metadata,crossplane" or "gitops,download")
-      const parametersRendered = await this.renderMultipleSubTemplates(
-        'parameters',
-        parametersTemplateName,
-        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp, ...options?.context }
-      );
-
-      const stepsRendered = await this.renderMultipleSubTemplates(
-        'steps',
-        stepsTemplateName,
-        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp, ...options?.context }
-      );
-
-      const outputRendered = await this.renderMultipleSubTemplates(
-        'output',
-        outputTemplateName,
-        { xrd, metadata: xrdData.metadata, helpers: this.helpers, source: xrdData.source, timestamp: xrdData.timestamp, ...options?.context }
-      );
-
-      // Prepare template context with rendered sub-templates
+      // Prepare base context (without rendered sub-templates)
       const context = {
         xrd,
         metadata: xrdData.metadata,
         helpers: this.helpers,
         source: xrdData.source,
         timestamp: xrdData.timestamp,
-        parametersRendered,  // Pre-rendered parameters section
-        stepsRendered,       // Pre-rendered steps section
-        outputRendered,      // Pre-rendered output section
         ...options?.context,
       };
 
-      // Generate Backstage template
+      // Generate Backstage template with YAML merge approach
       try {
-        const backstageTemplate = await this.generateBackstageTemplate(
+        // 1. Render main template (provides metadata + base spec)
+        const mainTemplate = await this.generateBackstageTemplate(
           backstageTemplateName,
           context
         );
+
+        // 2. Render sub-templates (provide spec.parameters/steps/output)
+        const parametersRendered = await this.renderMultipleSubTemplates(
+          'parameters',
+          parametersTemplateName,
+          context
+        );
+        const stepsRendered = await this.renderMultipleSubTemplates(
+          'steps',
+          stepsTemplateName,
+          context
+        );
+        const outputRendered = await this.renderMultipleSubTemplates(
+          'output',
+          outputTemplateName,
+          context
+        );
+
+        // 3. Parse sub-templates to objects
+        const parametersObj = yaml.load(parametersRendered) || {};
+        const stepsObj = yaml.load(stepsRendered) || {};
+        const outputObj = yaml.load(outputRendered) || {};
+
+        // 4. Merge all templates (main + sub-templates)
+        const backstageTemplate = this.deepMergeYaml([
+          mainTemplate,
+          parametersObj,
+          stepsObj,
+          outputObj
+        ]);
 
         if (backstageTemplate) {
           // Add base XRD name for clean filename generation
