@@ -20,7 +20,7 @@ spec:
           ⚡ This template uses direct apply workflow:
 
           1. Creates your {{xrd.spec.names.kind}} resource immediately in the cluster
-          2. Registers the resource in the Backstage catalog
+          2. Resource will be auto-discovered by the Kubernetes ingestor
 
           Your resource will be created as soon as you click Create.
 
@@ -75,21 +75,7 @@ spec:
 
               The resource is now active and ready to use.
 
-    - id: register
-      name: Register in Catalog
-      action: catalog:register
-      input:
-        repoContentsUrl: {{backstageVar "steps.create-resource.output.repoContentsUrl"}}
-        catalogInfoPath: /catalog-info.yaml
-      output:
-        links:
-          - title: View in Catalog
-            icon: catalog
-            url: {{{backstageVar "steps['register'].output.entityRef"}}}
-        text:
-          - title: Catalog Registration
-            content: |
-              **Registered in Backstage Catalog** 📝
+              **📝 Catalog Discovery**
 
-              Your {{xrd.spec.names.kind}} resource has been added to the software catalog.
-              You can now track, monitor, and manage it through Backstage.
+              Your resource will be automatically discovered and registered in the Backstage catalog
+              by the Kubernetes ingestor. This may take a few moments.
