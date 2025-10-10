@@ -33,14 +33,11 @@ spec:
         namespaceParam: {{#if (eq xrd.spec.scope "Namespaced")}}'namespace'{{else}}''{{/if}}
         ownerParam: owner
         excludeParams:
-{{#if (getAnnotation xrd "openportal.dev/includeNameInSpec")}}
-          - namespace
-          - owner
-{{else}}
+{{#unless (getAnnotation xrd "openportal.dev/includeNameInSpec")}}
           - name
+{{/unless}}
           - namespace
           - owner
-{{/if}}
         apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
         kind: {{xrd.spec.names.kind}}
         clusters: ['{{metadata.cluster}}']

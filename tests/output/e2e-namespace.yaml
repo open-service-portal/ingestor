@@ -55,8 +55,9 @@ spec:
         namespaceParam: ''
         ownerParam: owner
         excludeParams:
-          - owner
+          - name
           - namespace
+          - owner
           - gitopsOwner
           - gitopsRepo
           - gitopsTargetBranch
