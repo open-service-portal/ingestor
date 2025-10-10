@@ -42,3 +42,4 @@ temp/
 
 # Test artifacts
 tests/output/.assert-*-stripped.yaml
+tests/output/
