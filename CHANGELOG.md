@@ -4,6 +4,13 @@ All notable changes to the Backstage Ingestor Plugin will be documented in this 
 
 ## [Unreleased]
 
+### Fixed
+- **Removed broken catalog:register step from default template** - The step was failing because `kube:apply` doesn't output `repoContentsUrl`. Resources are now automatically discovered by the Kubernetes ingestor instead.
+  - Removed `catalog:register` step that expected `repoContentsUrl` from `kube:apply`
+  - Updated workflow info message to reflect auto-discovery
+  - Added catalog discovery note in create-resource output
+  - Fixes validation error: "Invalid input passed to action catalog:register"
+
 ### Changed
 
 #### Self-Contained Template Architecture
