@@ -24,38 +24,54 @@ spec:
 
           Your resource will be created as soon as you click Create.
 
-    - id: create-resource
-      name: Create {{xrd.spec.names.kind}}
-      action: kube:apply
+    - id: generateManifest
+      name: Generate {{xrd.spec.names.kind}} Manifest
+      action: terasky:claim-template
       input:
-        manifest: |
-          apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
-          kind: {{xrd.spec.names.kind}}
-          metadata:
-            name: {{backstageVar "parameters.name"}}
-{{#if (eq xrd.spec.scope "Namespaced")}}
-            namespace: {{backstageVar "parameters.namespace"}}
-{{/if}}
-          spec: {{backstageVar "parameters"}}
-        namespaced: {{#if (eq xrd.spec.scope "Namespaced")}}true{{else}}false{{/if}}
+        parameters: {{{backstageVar "parameters"}}}
+        nameParam: name
+        namespaceParam: {{#if (eq xrd.spec.scope "Namespaced")}}'namespace'{{else}}''{{/if}}
+        ownerParam: owner
+        excludeParams:
+          - name
+          - namespace
+          - owner
+        apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+        kind: {{xrd.spec.names.kind}}
+        clusters: ['{{metadata.cluster}}']
+        removeEmptyParams: true
       output:
         text:
-          - title: Resource Details
+          - title: "📝 Generated Manifest"
             content: |
-              **Resource Created Successfully!** ✅
+              **Kubernetes Resource Manifest Generated Successfully!** ✅
 
               **Resource Information:**
-              - **Name**: `${{ parameters.name }}`
+              - **Name**: `{{{backstageVar "parameters.name"}}}`
               - **Type**: {{xrd.spec.names.kind}}
               - **API Version**: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
               - **Cluster**: {{metadata.cluster}}
               {{#if (eq xrd.spec.scope "Namespaced")}}
-              - **Namespace**: `${{ parameters.namespace }}`
+              - **Namespace**: `{{{backstageVar "parameters.namespace"}}}`
               {{else}}
               - **Scope**: Cluster-wide
               {{/if}}
 
-              Your resource is now active in the cluster and ready to use.
+              **Next Step**: Applying resource to cluster...
+
+    - id: create-resource
+      name: Apply {{xrd.spec.names.kind}} to Cluster
+      action: kube:apply
+      input:
+        namespaced: {{#if (eq xrd.spec.scope "Namespaced")}}true{{else}}false{{/if}}
+        manifest: {{{backstageVar "steps['generateManifest'].output.manifest"}}}
+      output:
+        text:
+          - title: "✅ Resource Applied"
+            content: |
+              **Your {{xrd.spec.names.kind}} has been created in the cluster!**
+
+              The resource is now active and ready to use.
 
     - id: register
       name: Register in Catalog

@@ -78,32 +78,50 @@ spec:
           2. Registers the resource in the Backstage catalog
 
           Your resource will be created as soon as you click Create.
-    - id: create-resource
-      name: Create WhoAmIApp
-      action: kube:apply
+    - id: generateManifest
+      name: Generate WhoAmIApp Manifest
+      action: terasky:claim-template
       input:
-        manifest: |
-          apiVersion: openportal.dev/v1alpha1
-          kind: WhoAmIApp
-          metadata:
-            name: ${{ parameters.name }}
-            namespace: ${{ parameters.namespace }}
-          spec: ${{ parameters }}
-        namespaced: true
+        parameters: ${{ parameters }}
+        nameParam: name
+        namespaceParam: namespace
+        ownerParam: owner
+        excludeParams:
+          - name
+          - namespace
+          - owner
+        apiVersion: openportal.dev/v1alpha1
+        kind: WhoAmIApp
+        clusters:
+          - rancher-desktop
+        removeEmptyParams: true
       output:
         text:
-          - title: Resource Details
+          - title: 📝 Generated Manifest
             content: |
-              **Resource Created Successfully!** ✅
+              **Kubernetes Resource Manifest Generated Successfully!** ✅
 
               **Resource Information:**
-              - **Name**: `$`
+              - **Name**: `${{ parameters.name }}`
               - **Type**: WhoAmIApp
               - **API Version**: openportal.dev/v1alpha1
               - **Cluster**: rancher-desktop
-              - **Namespace**: `$`
+              - **Namespace**: `${{ parameters.namespace }}`
 
-              Your resource is now active in the cluster and ready to use.
+              **Next Step**: Applying resource to cluster...
+    - id: create-resource
+      name: Apply WhoAmIApp to Cluster
+      action: kube:apply
+      input:
+        namespaced: true
+        manifest: ${{ steps['generateManifest'].output.manifest }}
+      output:
+        text:
+          - title: ✅ Resource Applied
+            content: |
+              **Your WhoAmIApp has been created in the cluster!**
+
+              The resource is now active and ready to use.
     - id: register
       name: Register in Catalog
       action: catalog:register
