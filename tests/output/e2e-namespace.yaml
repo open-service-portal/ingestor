@@ -122,15 +122,6 @@ spec:
 
               Click "View Pull Request" above to monitor the approval process.
   output:
-    links:
-      - title: Download YAML Manifest
-        icon: docs
-        url: >-
-          ${{ "data:application/yaml;charset=utf-8," +
-          encodeURIComponent(steps['generateManifest'].output.manifest || '') }}
-      - title: View Pull Request
-        icon: github
-        url: ${{ steps['create-pull-request'].output.remoteUrl }}
     text:
       - title: 📋 GitOps Workflow Summary
         content: |

@@ -105,9 +105,11 @@ spec:
   output:
     links:
       - title: Download YAML Manifest
+        icon: docs
         url: >-
           ${{ "data:application/yaml;charset=utf-8," +
-          encodeURIComponent(steps['create-resource'].output.manifest || '') }}
+          encodeURIComponent(steps['generateManifest'].output.manifest ||
+          steps['create-resource'].output.manifest || '') }}
 
 ---
 apiVersion: backstage.io/v1alpha1
