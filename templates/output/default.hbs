@@ -1,7 +1,7 @@
 {{!--
   Default Output Template
-  Generates the output section for direct apply workflow
-  Shows download link for generated manifest
+  Provides download link for the generated Kubernetes manifest
+  Works with both direct workflow (create-resource) and GitOps workflow (generateManifest)
 
   Available variables:
   - xrd: The full XRD object
@@ -15,4 +15,5 @@ spec:
   output:
     links:
       - title: Download YAML Manifest
-        url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['create-resource'].output.manifest || '')"}}}
+        icon: docs
+        url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['generateManifest'].output.manifest || steps['create-resource'].output.manifest || '')"}}}

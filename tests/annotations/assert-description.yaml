@@ -1,3 +1,23 @@
+# TEST ASSERTION - DO NOT BLINDLY REGENERATE
+#
+# Test: description
+# Purpose: Validates custom description from backstage.io/description
+# Scenario: annotations
+#
+# This file contains the EXPECTED output for this test case.
+# It should only be updated when:
+#   1. Adding NEW features that intentionally change output
+#   2. Fixing BUGS where the old output was incorrect
+#   3. Modifying templates with a clear, documented purpose
+#
+# NEVER blindly regenerate this file without understanding WHY the output changed!
+#
+# To update after reviewing changes:
+#   cp tests/output/annotations-description.yaml tests/annotations/assert-description.yaml
+#
+# This header will be stripped during test comparison.
+# ---
+
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:

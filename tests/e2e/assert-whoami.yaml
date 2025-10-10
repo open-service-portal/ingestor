@@ -1,3 +1,23 @@
+# TEST ASSERTION - DO NOT BLINDLY REGENERATE
+#
+# Test: whoami
+# Purpose: End-to-end test with template-whoami XRD using production templates
+# Scenario: e2e
+#
+# This file contains the EXPECTED output for this test case.
+# It should only be updated when:
+#   1. Adding NEW features that intentionally change output
+#   2. Fixing BUGS where the old output was incorrect
+#   3. Modifying templates with a clear, documented purpose
+#
+# NEVER blindly regenerate this file without understanding WHY the output changed!
+#
+# To update after reviewing changes:
+#   cp tests/output/e2e-whoami.yaml tests/e2e/assert-whoami.yaml
+#
+# This header will be stripped during test comparison.
+# ---
+
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
@@ -105,9 +125,11 @@ spec:
   output:
     links:
       - title: Download YAML Manifest
+        icon: docs
         url: >-
           ${{ "data:application/yaml;charset=utf-8," +
-          encodeURIComponent(steps['create-resource'].output.manifest || '') }}
+          encodeURIComponent(steps['generateManifest'].output.manifest ||
+          steps['create-resource'].output.manifest || '') }}
 
 ---
 apiVersion: backstage.io/v1alpha1

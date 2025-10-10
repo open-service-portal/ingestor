@@ -14,6 +14,12 @@ templates/
 ├── steps/              # Scaffolder workflow steps
 │   ├── default.hbs     # Direct kube:apply workflow (works for both scopes)
 │   └── gitops.hbs      # GitOps PR workflow with three-level config support
+├── output/             # Scaffolder output sections (links & text)
+│   ├── default.hbs     # Download manifest link (works for both workflows)
+│   ├── pr-link.hbs     # Pull request link (GitOps workflow)
+│   ├── gitops.hbs      # GitOps workflow summary text
+│   ├── download-manifest.hbs  # Download link building block
+│   └── gitops-summary.hbs     # Summary text building block
 └── api/                # API documentation entities
     └── default.hbs     # Default OpenAPI documentation
 ```
@@ -280,6 +286,75 @@ metadata:
   annotations:
     openportal.dev/template-steps: "gitops"
 ```
+
+### Example: Output Templates
+
+Output templates provide the links and text shown to users after template execution. They are organized as **building blocks** that can be composed:
+
+#### Default Output (Download Manifest)
+
+The `default.hbs` output template provides a download link for the generated manifest:
+
+```handlebars
+spec:
+  output:
+    links:
+      - title: Download YAML Manifest
+        icon: docs
+        url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['generateManifest'].output.manifest || steps['create-resource'].output.manifest || '')"}}}
+```
+
+**Works with both workflows:**
+- Direct workflow: Uses `steps['create-resource'].output.manifest`
+- GitOps workflow: Uses `steps['generateManifest'].output.manifest`
+
+#### PR Link
+
+The `pr-link.hbs` template provides a link to the created pull request:
+
+```handlebars
+spec:
+  output:
+    links:
+      - title: View Pull Request
+        icon: github
+        url: {{{backstageVar "steps['create-pull-request'].output.remoteUrl"}}}
+```
+
+#### GitOps Summary
+
+The `gitops.hbs` template provides summary text about the GitOps workflow:
+
+```handlebars
+spec:
+  output:
+    text:
+      - title: "📋 GitOps Workflow Summary"
+        content: |
+          **Your {{xrd.spec.names.kind}} request has been submitted!** ✅
+
+          **GitOps Repository:** {{config.gitops.owner}}/{{config.gitops.repo}}
+          **Target Cluster:** {{metadata.cluster}}
+
+          Your resource will be deployed after the PR is reviewed and merged.
+```
+
+#### Composing Output Templates
+
+Use comma-separated template names to compose multiple outputs:
+
+```yaml
+metadata:
+  annotations:
+    openportal.dev/template-steps: "gitops"
+    openportal.dev/template-output: "default,pr-link,gitops"  # Download + PR link + Summary
+```
+
+**Common combinations:**
+- **Direct workflow**: `"default"` - Just the download link
+- **GitOps workflow**: `"default,pr-link,gitops"` - Download + PR link + Summary
+- **Minimal GitOps**: `"pr-link,gitops"` - Just PR link and summary
+- **Summary only**: `"gitops"` - Just the summary text
 
 ## Helper Functions
 

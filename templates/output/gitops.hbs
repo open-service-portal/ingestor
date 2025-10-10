@@ -1,27 +1,17 @@
 {{!--
-  GitOps Output Template (Composite)
-  Uses building blocks: download-manifest, pr-link, gitops-summary
+  GitOps Summary Output Template
+  Provides summary information about the GitOps workflow
 
-  Note: This template is now a composite that can be replaced with:
-  openportal.dev/template-output: "download-manifest,pr-link,gitops-summary"
+  This template only provides the text summary.
+  For complete GitOps output, use: "default,pr-link,gitops"
 
   Available variables:
   - xrd: The full XRD object
   - metadata: Extraction metadata
-  - helpers: Utility functions
-  - source: Source of the XRD
-  - timestamp: When extracted
   - config: Configuration from app-config
 --}}
 spec:
   output:
-    links:
-      - title: Download YAML Manifest
-        icon: docs
-        url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['generateManifest'].output.manifest || '')"}}}
-      - title: View Pull Request
-        icon: github
-        url: {{{backstageVar "steps['create-pull-request'].output.remoteUrl"}}}
     text:
       - title: "📋 GitOps Workflow Summary"
         content: |

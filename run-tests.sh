@@ -80,14 +80,20 @@ for scenario_dir in "${TEST_DIR}"/*/ ; do
       continue
     fi
 
+    # Strip headers from assert file for comparison
+    # Headers start with "# TEST ASSERTION" and end with "# ---", followed by blank line
+    assert_stripped="${OUTPUT_DIR}/.assert-${test_case}-stripped.yaml"
+    sed '1,/^# ---$/d' "${assert_file}" | sed '1{/^$/d;}' > "${assert_stripped}"
+
     # Compare
-    if diff -u "${assert_file}" "${output_file}" > /dev/null 2>&1; then
+    if diff -u "${assert_stripped}" "${output_file}" > /dev/null 2>&1; then
       echo -e "    ${GREEN}✓ Pass${NC}"
       PASSED=$((PASSED + 1))
     else
       echo -e "    ${RED}✗ Fail${NC}"
-      diff -u "${assert_file}" "${output_file}" | head -20
+      diff -u "${assert_stripped}" "${output_file}" | head -20
       echo -e "    ${YELLOW}To update: cp ${output_file} ${assert_file}${NC}"
+      echo -e "    ${YELLOW}          (then manually add header using scripts/add-test-headers.sh)${NC}"
       FAILED=$((FAILED + 1))
     fi
   done

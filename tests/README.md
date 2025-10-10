@@ -74,6 +74,65 @@ Test templates in `tests/templates/` are **minimal** - designed to test transfor
 
 E2E tests in `tests/e2e/` use production templates from `templates/` to ensure real-world scenarios work.
 
+## Assertion File Headers
+
+All `assert-*.yaml` files include **protective headers** that prevent accidental corruption:
+
+```yaml
+# TEST ASSERTION - DO NOT BLINDLY REGENERATE
+#
+# Test: namespaced
+# Purpose: Validates that Namespaced scope XRDs include namespace parameter
+# Scenario: scope
+#
+# This file contains the EXPECTED output for this test case.
+# It should only be updated when:
+#   1. Adding NEW features that intentionally change output
+#   2. Fixing BUGS where the old output was incorrect
+#   3. Modifying templates with a clear, documented purpose
+#
+# NEVER blindly regenerate this file without understanding WHY the output changed!
+#
+# To update after reviewing changes:
+#   cp tests/output/scope-namespaced.yaml tests/scope/assert-namespaced.yaml
+#
+# This header will be stripped during test comparison.
+# ---
+
+apiVersion: scaffolder.backstage.io/v1beta3
+...
+```
+
+**Key points:**
+- Headers are **automatically stripped** during test comparison
+- Document test **purpose** and **scenario** for maintainability
+- **Manual edits are acceptable** - headers protect intent, not immutability
+- **Intentional updates** should follow the documented procedure
+
+### When to Update Assertions
+
+✅ **DO update** when:
+- Adding new features that change output
+- Fixing bugs where old output was incorrect
+- Refactoring templates with clear purpose
+- Improving error messages or validation
+
+❌ **DO NOT update** when:
+- Tests fail unexpectedly
+- You don't understand why output changed
+- Blindly running `cp` without reviewing diffs
+
+### Adding Headers to New Assertions
+
+Use the automated script to add headers to new assertion files:
+
+```bash
+# Add headers to all assert files
+./scripts/add-test-headers.sh
+
+# Or manually add header following the format above
+```
+
 ## Adding Tests
 
 1. **Choose scenario** - Or create new directory
@@ -81,7 +140,8 @@ E2E tests in `tests/e2e/` use production templates from `templates/` to ensure r
 3. **Run tests**: `./run-tests.sh`
 4. **Review output**: `tests/output/scenario-mycase.yaml`
 5. **Accept as assertion**: `cp tests/output/scenario-mycase.yaml tests/scenario/assert-mycase.yaml`
-6. **Verify**: `./run-tests.sh` should pass
+6. **Add protective header**: `./scripts/add-test-headers.sh`
+7. **Verify**: `./run-tests.sh` should pass
 
 ## Test Development Workflow
 
@@ -102,7 +162,38 @@ cat tests/output/scope-newcase.yaml
 # 4. Accept if correct
 cp tests/output/scope-newcase.yaml tests/scope/assert-newcase.yaml
 
-# 5. Verify test passes
+# 5. Add protective header
+./scripts/add-test-headers.sh
+
+# 6. Verify test passes
+./run-tests.sh
+```
+
+### Updating Existing Assertions
+
+When test output changes intentionally (feature addition, bug fix, template refactoring):
+
+```bash
+# 1. Run tests to see what changed
+./run-tests.sh
+
+# 2. Review the diff carefully
+diff -u \
+  <(sed '1,/^# ---$/d' tests/scope/assert-namespaced.yaml | sed '1{/^$/d;}') \
+  tests/output/scope-namespaced.yaml
+
+# 3. Understand WHY the output changed
+#    - Is this expected?
+#    - Does it align with your changes?
+#    - Are there unintended side effects?
+
+# 4. If change is intentional, update assertion
+cp tests/output/scope-namespaced.yaml tests/scope/assert-namespaced.yaml
+
+# 5. Update the header's purpose if test focus changed
+vim tests/scope/assert-namespaced.yaml  # Edit purpose line if needed
+
+# 6. Verify test passes
 ./run-tests.sh
 ```
 

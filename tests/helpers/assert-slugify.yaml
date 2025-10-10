@@ -1,3 +1,23 @@
+# TEST ASSERTION - DO NOT BLINDLY REGENERATE
+#
+# Test: slugify
+# Purpose: Tests slugify helper converts dots and capitals to lowercase-hyphenated
+# Scenario: helpers
+#
+# This file contains the EXPECTED output for this test case.
+# It should only be updated when:
+#   1. Adding NEW features that intentionally change output
+#   2. Fixing BUGS where the old output was incorrect
+#   3. Modifying templates with a clear, documented purpose
+#
+# NEVER blindly regenerate this file without understanding WHY the output changed!
+#
+# To update after reviewing changes:
+#   cp tests/output/helpers-slugify.yaml tests/helpers/assert-slugify.yaml
+#
+# This header will be stripped during test comparison.
+# ---
+
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
