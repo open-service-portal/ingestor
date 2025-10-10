@@ -55,7 +55,6 @@ spec:
         namespaceParam: ''
         ownerParam: owner
         excludeParams:
-          - name
           - namespace
           - owner
           - gitopsOwner

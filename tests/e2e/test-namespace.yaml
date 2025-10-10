@@ -22,6 +22,7 @@ metadata:
     # XRD Transform - GitOps PR workflow
     # openportal.dev/template-parameters: "gitops"
     openportal.dev/template-steps: "gitops"
+    openportal.dev/includeNameInSpec: "true"  # Include name in spec for namespace creation
 
     # Project metadata
     openportal.dev/tags: "namespace,kubernetes,core,rbac,infrastructure,platform"
