@@ -39,3 +39,7 @@ yarn-error.log*
 tmp/
 temp/
 *.tmp
+
+# Test artifacts
+tests/output/.assert-*-stripped.yaml
+tests/output/

@@ -1,0 +1,8 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: {{slugify xrd.metadata.name}}
+  title: {{xrd.spec.names.kind}}
+spec:
+  owner: test-owner
+  type: test-resource

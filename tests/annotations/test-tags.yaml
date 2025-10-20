@@ -1,0 +1,19 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: taggedresource.test.example.com
+  annotations:
+    openportal.dev/tags: "database,postgresql,production"
+spec:
+  scope: Cluster
+  group: test.example.com
+  names:
+    kind: TaggedResource
+    plural: taggedresources
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object

@@ -1,0 +1,86 @@
+spec:
+  steps:
+    - id: workflow-info
+      name: GitOps Workflow Information
+      action: debug:log
+      input:
+        message: |
+          🔄 This template uses GitOps workflow with Pull Request approval:
+
+          1. Generates your {{xrd.spec.names.kind}} resource manifest
+          2. Creates a Pull Request in the GitOps repository
+          3. Flux deploys the resource after PR is merged
+
+          Your resource will be created after the PR is approved and merged.
+
+    - id: generateManifest
+      name: Generate Kubernetes Resource Manifest
+      action: terasky:claim-template
+      input:
+        parameters: {{{backstageVar "parameters"}}}
+        nameParam: name
+        namespaceParam: {{#if (eq xrd.spec.scope "Namespaced")}}'namespace'{{else}}''{{/if}}
+        ownerParam: owner
+        excludeParams:
+{{#unless (getAnnotation xrd "openportal.dev/includeNameInSpec")}}
+          - name
+{{/unless}}
+          - namespace
+          - owner
+          - gitopsOwner
+          - gitopsRepo
+          - gitopsTargetBranch
+        apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+        kind: {{xrd.spec.names.kind}}
+        clusters: ['{{metadata.cluster}}']
+        removeEmptyParams: true
+      output:
+        text:
+          - title: "📝 Generated Manifest"
+            content: |
+              **Kubernetes Resource Manifest Generated Successfully!** ✅
+
+              **Resource Information:**
+              - **Name**: `{{{backstageVar "parameters.name"}}}`
+              - **Type**: {{xrd.spec.names.kind}}
+              - **API Version**: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+              - **Cluster**: {{metadata.cluster}}
+              {{#if (eq xrd.spec.scope "Namespaced")}}
+              - **Namespace**: `{{{backstageVar "parameters.namespace"}}}`
+              {{else}}
+              - **Scope**: Cluster-wide
+              {{/if}}
+
+              **Next Step**: Creating Pull Request in GitOps repository...
+
+    - id: create-pull-request
+      name: Create Pull Request
+      action: publish:github:pull-request
+      input:
+        # GitOps repo from config (TODO: support parameter overrides - see GitHub issue)
+        repoUrl: github.com?owner={{config.gitops.owner}}&repo={{config.gitops.repo}}
+        branchName: {{{backstageVar '"create-" + parameters.name + "-resource"'}}}
+        title: {{{backstageVar '"Create " + parameters.name + " Resource"'}}}
+        description: Create {{xrd.spec.names.kind}} resource {{{backstageVar "parameters.name"}}}
+        targetBranchName: {{config.gitops.targetBranch}}
+      output:
+        links:
+          - title: View Pull Request
+            icon: github
+            url: {{{backstageVar "steps['create-pull-request'].output.remoteUrl"}}}
+        text:
+          - title: "🔀 Pull Request Created"
+            content: |
+              **Pull Request Created Successfully!** ✅
+
+              Your {{xrd.spec.names.kind}} resource manifest has been submitted for review.
+
+              **GitOps Workflow:**
+              1. ✅ **Manifest Generated** - Your resource configuration is ready
+              2. ✅ **Pull Request Created** - Submitted to {{config.gitops.owner}}/{{config.gitops.repo}}
+              3. ⏳ **Awaiting Approval** - Team will review and approve the PR
+              4. ⏳ **Flux Deployment** - After merge, Flux will deploy to cluster {{metadata.cluster}}
+
+              **⚠️ Important**: Your resource will be created **after the PR is approved and merged**, not immediately.
+
+              Click "View Pull Request" above to monitor the approval process.

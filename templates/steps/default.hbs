@@ -1,0 +1,81 @@
+{{!--
+  Default Steps Template
+  Generates the steps section for Backstage scaffolder templates
+  Works with both namespaced and cluster-scoped resources
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - helpers: Utility functions
+  - source: Source of the XRD
+  - timestamp: When extracted
+--}}
+spec:
+  steps:
+    - id: workflow-info
+      name: Direct Apply Workflow Information
+      action: debug:log
+      input:
+        message: |
+          ⚡ This template uses direct apply workflow:
+
+          1. Creates your {{xrd.spec.names.kind}} resource immediately in the cluster
+          2. Resource will be auto-discovered by the Kubernetes ingestor
+
+          Your resource will be created as soon as you click Create.
+
+    - id: generateManifest
+      name: Generate {{xrd.spec.names.kind}} Manifest
+      action: terasky:claim-template
+      input:
+        parameters: {{{backstageVar "parameters"}}}
+        nameParam: name
+        namespaceParam: {{#if (eq xrd.spec.scope "Namespaced")}}'namespace'{{else}}''{{/if}}
+        ownerParam: owner
+        excludeParams:
+{{#unless (getAnnotation xrd "openportal.dev/includeNameInSpec")}}
+          - name
+{{/unless}}
+          - namespace
+          - owner
+        apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+        kind: {{xrd.spec.names.kind}}
+        clusters: ['{{metadata.cluster}}']
+        removeEmptyParams: true
+      output:
+        text:
+          - title: "📝 Generated Manifest"
+            content: |
+              **Kubernetes Resource Manifest Generated Successfully!** ✅
+
+              **Resource Information:**
+              - **Name**: `{{{backstageVar "parameters.name"}}}`
+              - **Type**: {{xrd.spec.names.kind}}
+              - **API Version**: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
+              - **Cluster**: {{metadata.cluster}}
+              {{#if (eq xrd.spec.scope "Namespaced")}}
+              - **Namespace**: `{{{backstageVar "parameters.namespace"}}}`
+              {{else}}
+              - **Scope**: Cluster-wide
+              {{/if}}
+
+              **Next Step**: Applying resource to cluster...
+
+    - id: create-resource
+      name: Apply {{xrd.spec.names.kind}} to Cluster
+      action: kube:apply
+      input:
+        namespaced: {{#if (eq xrd.spec.scope "Namespaced")}}true{{else}}false{{/if}}
+        manifest: {{{backstageVar "steps['generateManifest'].output.manifest"}}}
+      output:
+        text:
+          - title: "✅ Resource Applied"
+            content: |
+              **Your {{xrd.spec.names.kind}} has been created in the cluster!**
+
+              The resource is now active and ready to use.
+
+              **📝 Catalog Discovery**
+
+              Your resource will be automatically discovered and registered in the Backstage catalog
+              by the Kubernetes ingestor. This may take a few moments.

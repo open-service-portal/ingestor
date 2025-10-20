@@ -1,0 +1,27 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: required.test.example.com
+spec:
+  scope: Cluster
+  group: test.example.com
+  names:
+    kind: RequiredTest
+    plural: requiredtests
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - mandatoryField
+              properties:
+                mandatoryField:
+                  type: string
+                optionalField:
+                  type: string

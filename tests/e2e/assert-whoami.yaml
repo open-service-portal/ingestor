@@ -1,0 +1,218 @@
+# TEST ASSERTION - DO NOT BLINDLY REGENERATE
+#
+# Test: whoami
+# Purpose: End-to-end test with template-whoami XRD using production templates
+# Scenario: e2e
+#
+# This file contains the EXPECTED output for this test case.
+# It should only be updated when:
+#   1. Adding NEW features that intentionally change output
+#   2. Fixing BUGS where the old output was incorrect
+#   3. Modifying templates with a clear, documented purpose
+#
+# NEVER blindly regenerate this file without understanding WHY the output changed!
+#
+# To update after reviewing changes:
+#   cp tests/output/e2e-whoami.yaml tests/e2e/assert-whoami.yaml
+#
+# This header will be stripped during test comparison.
+# ---
+
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: whoamiapps-openportal-dev
+  title: Who Am I App
+  description: Create and manage WhoAmIApp resources
+  tags:
+    - crossplane
+    - openportal-dev
+    - demo
+    - application
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: whoamiapps.openportal.dev
+    crossplane.io/xrd-group: openportal.dev
+spec:
+  owner: platform-team
+  type: crossplane-resource
+  parameters:
+    - title: Resource Configuration
+      required:
+        - name
+        - namespace
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Name of the WhoAmIApp
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+        namespace:
+          title: Namespace
+          type: string
+          description: Kubernetes namespace
+          default: default
+        replicas:
+          title: Replicas
+          type: number
+          description: Number of replicas
+          default: 1
+          minimum: 1
+          maximum: 3
+        image:
+          title: Image
+          type: string
+          description: Container image to deploy
+          default: null
+  steps:
+    - id: workflow-info
+      name: Direct Apply Workflow Information
+      action: debug:log
+      input:
+        message: |
+          ⚡ This template uses direct apply workflow:
+
+          1. Creates your WhoAmIApp resource immediately in the cluster
+          2. Resource will be auto-discovered by the Kubernetes ingestor
+
+          Your resource will be created as soon as you click Create.
+    - id: generateManifest
+      name: Generate WhoAmIApp Manifest
+      action: terasky:claim-template
+      input:
+        parameters: ${{ parameters }}
+        nameParam: name
+        namespaceParam: namespace
+        ownerParam: owner
+        excludeParams:
+          - name
+          - namespace
+          - owner
+        apiVersion: openportal.dev/v1alpha1
+        kind: WhoAmIApp
+        clusters:
+          - rancher-desktop
+        removeEmptyParams: true
+      output:
+        text:
+          - title: 📝 Generated Manifest
+            content: |
+              **Kubernetes Resource Manifest Generated Successfully!** ✅
+
+              **Resource Information:**
+              - **Name**: `${{ parameters.name }}`
+              - **Type**: WhoAmIApp
+              - **API Version**: openportal.dev/v1alpha1
+              - **Cluster**: rancher-desktop
+              - **Namespace**: `${{ parameters.namespace }}`
+
+              **Next Step**: Applying resource to cluster...
+    - id: create-resource
+      name: Apply WhoAmIApp to Cluster
+      action: kube:apply
+      input:
+        namespaced: true
+        manifest: ${{ steps['generateManifest'].output.manifest }}
+      output:
+        text:
+          - title: ✅ Resource Applied
+            content: >
+              **Your WhoAmIApp has been created in the cluster!**
+
+
+              The resource is now active and ready to use.
+
+
+              **📝 Catalog Discovery**
+
+
+              Your resource will be automatically discovered and registered in
+              the Backstage catalog
+
+              by the Kubernetes ingestor. This may take a few moments.
+  output:
+    links:
+      - title: Download YAML Manifest
+        icon: docs
+        url: >-
+          ${{ "data:application/yaml;charset=utf-8," +
+          encodeURIComponent(steps['generateManifest'].output.manifest ||
+          steps['create-resource'].output.manifest || '') }}
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: whoamiapps-openportal-dev-api
+  title: Who Am I App API
+  description: API specification for WhoAmIApp
+  tags:
+    - crossplane
+    - ingestor
+    - openportal-dev
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: provider:XRDTemplateEntityProvider
+    backstage.io/managed-by-origin-location: provider:XRDTemplateEntityProvider
+    crossplane.io/xrd-name: whoamiapps.openportal.dev
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-team
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: WhoAmIApp API
+      version: v1alpha1
+      description: OpenAPI specification for WhoAmIApp
+    paths:
+      /whoamiapps:
+        get:
+          summary: List whoamiapps
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create WhoAmIApp
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: WhoAmIApp configuration
+                      properties:
+                        name:
+                          type: string
+                          description: "Application name (becomes subdomain, e.g., myapp.openportal.dev)"
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                          minLength: 1
+                          maxLength: 63
+                        replicas:
+                          type: number
+                          description: "Number of replicas"
+                          minimum: 1
+                          maximum: 3
+                        image:
+                          type: string
+                          description: "Container image to deploy"
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created
+

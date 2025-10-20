@@ -1,0 +1,35 @@
+{{!--
+  Default Backstage Template
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - helpers: Utility functions
+  - source: Source of the XRD
+  - timestamp: When extracted
+--}}
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: {{slugify xrd.metadata.name}}
+  title: {{extractTitle xrd}}
+  description: {{#if xrd.metadata.annotations.["backstage.io/description"]}}{{xrd.metadata.annotations.["backstage.io/description"]}}{{else}}Create and manage {{xrd.spec.names.kind}} resources{{/if}}
+  tags:
+    - crossplane
+    - {{replace xrd.spec.group "." "-"}}
+{{#if (getAnnotation xrd "openportal.dev/tags")}}
+{{#each (split (getAnnotation xrd "openportal.dev/tags") ",")}}
+    - {{trim this}}
+{{/each}}
+{{/if}}
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: "provider:XRDTemplateEntityProvider"
+    backstage.io/managed-by-origin-location: "provider:XRDTemplateEntityProvider"
+    crossplane.io/xrd-name: {{xrd.metadata.name}}
+    crossplane.io/xrd-group: {{xrd.spec.group}}
+{{#if (getAnnotation xrd "backstage.io/techdocs-ref")}}
+    backstage.io/techdocs-ref: {{getAnnotation xrd "backstage.io/techdocs-ref"}}
+{{/if}}
+spec:
+  owner: {{#if (getAnnotation xrd "backstage.io/owner")}}{{getAnnotation xrd "backstage.io/owner"}}{{else}}platform-team{{/if}}
+  type: crossplane-resource

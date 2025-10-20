@@ -1,0 +1,19 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: described.test.example.com
+  annotations:
+    backstage.io/description: "Custom description from annotation"
+spec:
+  scope: Cluster
+  group: test.example.com
+  names:
+    kind: DescribedResource
+    plural: describedresources
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object

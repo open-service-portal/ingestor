@@ -12,11 +12,16 @@ Originally forked from [@terasky/backstage-plugin-kubernetes-ingestor](https://g
 - **Multi-Cluster Support**: Works with multiple Kubernetes clusters simultaneously
 - **Custom Resource Support**: Extensible to support any Kubernetes custom resource
 - **Entity Metadata Enrichment**: Automatically adds relevant Kubernetes metadata to catalog entities
-- **XRD Template Generation**: Automatically generates Backstage templates for Crossplane XRDs
+- **XRD Template Generation**: Automatically generates Backstage templates for Crossplane XRDs using Handlebars
+- **Modular Template System**: Separate templates for parameters, steps, output, and API documentation
+- **Multi-Template Composition**: Comma-separated template building blocks with YAML-aware merging
+- **Template-Level Outputs**: Results panel in Backstage UI with download links and PR status
 - **GitOps Integration**: Support for PR-based template registration (GitHub/GitLab/Bitbucket)
-- **CLI Tools**: Command-line tools for ingestion and export operations
+- **Context-Aware CLI**: Automatically detects kubectl context and loads cluster-specific configuration
+- **CLI Tools**: Command-line tools for transformation, ingestion, and export operations
 - **Unified Architecture**: Same ingestion engine used by both CLI and runtime
 - **XR Status Links**: Automatic extraction and generation of links from Kubernetes resource status fields
+- **Test Infrastructure**: Flattened scenario-based testing with 3+ passing tests
 
 ## Installation
 
@@ -54,15 +59,35 @@ kubernetesIngestor:
     enabled: true
     xrds:
       enabled: true
+      # GitOps configuration for template generation
+      gitops:
+        ordersRepo:
+          owner: 'your-org'
+          repo: 'catalog-orders'
+          targetBranch: 'main'
 ```
 
 **[→ Full Configuration Reference](./docs/configuration.md)**
+
+### GitOps Workflow
+
+The plugin supports PR-based resource creation via the `gitops` step template:
+
+- **Configuration**: Repository settings in `app-config.yaml` under `kubernetesIngestor.crossplane.xrds.gitops`
+- **Auto-detection**: Automatically detects current kubectl context for cluster targeting
+- **Validation**: Fails fast with helpful messages if configuration is missing
+- **Template**: Use annotation `openportal.dev/template-steps: "gitops"` on your XRD
+
+See [Template Development Guide](./templates/README.md) for details.
 
 ## Documentation
 
 ### For Users
 
+- **[Quick Start Guide](./docs/quick-start.md)** - Get started quickly with copy-paste examples
 - **[Configuration Reference](./docs/configuration.md)** - All configuration options with examples
+- **[XRD Annotations Reference](./docs/xrd-annotations-reference.md)** - Control template generation with annotations
+- **[XRD Transform Examples](./docs/xrd-transform-examples.md)** - Complete usage guide for xrd-transform tool
 - **[XR Status Links](./docs/xr-status-links.md)** - Automatic link extraction from status fields
 - **[CLI: Ingestor](./docs/cli-ingestor.md)** - Process Kubernetes resources from files
 - **[CLI: Export](./docs/cli-export.md)** - Export entities from Backstage catalog
@@ -70,8 +95,9 @@ kubernetesIngestor:
 ### For Developers
 
 - **[Architecture Overview](./docs/architecture.md)** - System design and components
-- **[XRD Ingestion](./docs/XRD_INGESTION.md)** - How XRDs are transformed to templates
-- **[CLI Implementation](./docs/CLI-IMPLEMENTATION.md)** - CLI tools architecture
+- **[XRD Ingestion](./docs/xrd-ingestion.md)** - How XRDs are transformed to templates
+- **[Template Development Guide](./templates/README.md)** - Creating custom Handlebars templates
+- **[CLI Implementation](./docs/cli-implementation.md)** - CLI tools architecture
 - **[Testing Guide](./tests/README.md)** - Running and writing tests
 
 ## Backend Integration
@@ -116,41 +142,82 @@ The ingestor automatically extracts and generates navigation links from Kubernet
 
 ## CLI Tools
 
-The plugin includes two command-line tools that use the same ingestion engine as the runtime plugin:
+The plugin includes several command-line tools that use the same ingestion engine as the runtime plugin:
 
-### Ingestor CLI
+### Architecture: Bin Scripts + Shell Wrappers
 
-Process Kubernetes resources from files without running Backstage:
+The CLI tools use a dual-layer architecture:
+
+1. **Bin Scripts** (`bin/ingestor`, `bin/backstage-export`)
+   - npm-compatible entry points for package installation
+   - Configure ts-node with `tsconfig.cli.json` for CommonJS module resolution
+   - Can be used when plugin is installed as an npm package
+
+2. **Shell Wrappers** (`scripts/*.sh`)
+   - Handle path resolution and argument preprocessing
+   - Provide user-friendly interfaces with auto-detection features
+   - Delegate to bin scripts for execution
+
+This architecture provides both npm installability and local development convenience.
+
+### XRD Transform Script (Template Ingestion)
+
+Transform XRDs into Backstage templates:
 
 ```bash
-# Process XRD file
-npx ts-node src/cli/ingestor-cli.ts xrd.yaml
+# From plugin directory
+./scripts/xrd-transform.sh path/to/xrd.yaml
 
-# Preview generated template
-npx ts-node src/cli/ingestor-cli.ts xrd.yaml --preview
+# From workspace root (delegates to plugin script)
+./scripts/template-ingest.sh template-namespace/configuration/xrd.yaml
 
-# Process with custom tags
-npx ts-node src/cli/ingestor-cli.ts xrd.yaml --tags "database,production"
+# With options
+./scripts/xrd-transform.sh -t debug path/to/xrd.yaml
+./scripts/xrd-transform.sh -o output/ path/to/xrd.yaml
+./scripts/xrd-transform.sh -v path/to/xrd.yaml
+
+# Direct bin usage (if installed via npm)
+npx ingestor path/to/xrd.yaml
 ```
 
-**[→ Full Ingestor CLI Documentation](./docs/cli-ingestor.md)**
+**[→ Full XRD Transform Documentation](./docs/xrd-transform-examples.md)**
 
-### Export CLI
+**Implementation:**
+- Shell wrapper: `scripts/xrd-transform.sh` → `bin/ingestor`
+- Workspace wrapper: `portal-workspace/scripts/template-ingest.sh` → plugin script
+- TypeScript CLI: `src/xrd-transform/cli/xrd-transform-cli.ts`
 
-Extract entities from a running Backstage catalog:
+### Backstage Export Script (Template Export)
+
+Export entities from a running Backstage catalog:
 
 ```bash
-# Export all templates
-npx ts-node src/cli/backstage-export.ts --kind Template
+# From plugin directory
+./scripts/backstage-export.sh --kind Template
 
-# Export with filtering
-npx ts-node src/cli/backstage-export.ts --kind Component --owner platform-team
+# From workspace root (delegates to plugin script)
+./scripts/template-export.sh --kind Template
+
+# Export with filters
+./scripts/backstage-export.sh --kind Template --tags crossplane --organize
 
 # Preview what would be exported
-npx ts-node src/cli/backstage-export.ts --kind Template --preview
+./scripts/backstage-export.sh --preview --kind Template,API
+
+# List entities only
+./scripts/backstage-export.sh --list --kind API
+
+# Direct bin usage (if installed via npm)
+npx backstage-export --kind Template
 ```
 
 **[→ Full Export CLI Documentation](./docs/cli-export.md)**
+
+**Implementation:**
+- Shell wrapper: `scripts/backstage-export.sh` → `bin/backstage-export`
+- Workspace wrapper: `portal-workspace/scripts/template-export.sh` → plugin script
+- TypeScript CLI: `src/backstage-export/cli/backstage-export-cli.ts`
+- Auto-detects API token from app-config files
 
 ## Development
 
@@ -190,6 +257,57 @@ yarn cli:ingestor examples/xrd.yaml --preview
 yarn cli:export --list --kind Template
 ```
 
+### Testing XRD Transforms
+
+The plugin includes a comprehensive regression test suite for XRD transformation:
+
+```bash
+# Run from plugin root directory
+./run-tests.sh
+
+# Or from test directory
+cd tests/xrd-transform
+../../run-tests.sh
+```
+
+**Test Coverage:**
+- ✅ Namespaced and cluster-scoped resources
+- ✅ Parameter annotations and GitOps workflows
+- ✅ Complex property types (arrays, objects, booleans)
+- ✅ Template and API entity generation
+
+**[→ Full Testing Documentation](./tests/xrd-transform/README.md)**
+
+### Test Maintainability
+
+**⚠️ IMPORTANT:** The xrd-transform test suite uses expected output files with protective headers to prevent accidental test corruption.
+
+**Test expectations should ONLY be updated when:**
+1. You've added **new features** that intentionally change output
+2. You've **fixed bugs** where the old output was incorrect
+3. You've **modified templates** with a clear purpose
+
+**Never blindly regenerate expected files!** Each expected test file includes a warning header that:
+- Documents when updates are appropriate
+- Reminds you to review changes carefully
+- Ensures both Template AND API entities are generated
+- Is validated by the test runner to prevent accidental removal
+
+**Update process:**
+```bash
+# 1. Run tests to see differences
+./run-tests.sh
+
+# 2. Review each diff carefully - understand WHY it changed
+# 3. Update expected file (keeping the warning header!)
+cp tests/xrd-transform/output/01-basic-namespaced.yaml \
+   tests/xrd-transform/expected/01-basic-namespaced.yaml
+
+# 4. Document the change in your commit message
+```
+
+See [tests/xrd-transform/expected/](./tests/xrd-transform/expected/) for examples of properly formatted expected files.
+
 ### Testing with Local Backstage
 
 1. Link the plugin in your Backstage app:
@@ -218,6 +336,12 @@ import { catalogModuleIngestor } from '@open-service-portal/backstage-plugin-ing
 
 2. Update your configuration keys if needed (most remain compatible)
 
+## Future Architecture
+
+We've documented a potential refactoring of the `KubernetesEntityProvider` using the Strategy Pattern for better extensibility and testability. See [Issue #6](https://github.com/open-service-portal/ingestor/issues/6) for the full architectural proposal.
+
+**Priority**: Low (nice-to-have, not urgent) - The current implementation is working and tested.
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
@@ -228,6 +352,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - Enhanced filtering capabilities
 - Performance optimizations
 - Documentation improvements
+- Custom Handlebars helpers for template generation
 
 ## Support
 

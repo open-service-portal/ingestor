@@ -1,0 +1,19 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: threeway.test.example.com
+  annotations:
+    openportal.dev/template-output: "default,download,pr"
+spec:
+  scope: Cluster
+  group: test.example.com
+  names:
+    kind: ThreeWayMerge
+    plural: threewaymerges
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object

@@ -1,0 +1,5 @@
+- title: Simple Params
+  properties:
+    name:
+      type: string
+    {{#if (eq xrd.spec.scope "Namespaced")}}namespace: {type: string}{{/if}}

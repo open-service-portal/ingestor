@@ -1,0 +1,251 @@
+{{!--
+  Debug Template - Shows all available variables
+
+  Use this template to inspect what data is available from an XRD transformation.
+
+  To use:
+    1. Add annotation to your XRD:
+       backstage.io/template: "debug"
+
+    2. Transform the XRD:
+       ./scripts/xrd-transform.sh your-xrd.yaml
+
+    3. Review the output to see all available variables
+
+  NOTE: This outputs raw YAML showing all variables, NOT a Backstage template.
+--}}
+# ============================================================================
+# DEBUG OUTPUT - All Available Variables from XRD Transform
+# ============================================================================
+# XRD: {{xrd.metadata.name}}
+# Generated: {{timestamp}}
+# Source: {{source}}
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# XRD Metadata
+# ----------------------------------------------------------------------------
+xrd_metadata:
+  name: {{xrd.metadata.name}}
+  {{#if xrd.metadata.namespace}}namespace: {{xrd.metadata.namespace}}{{/if}}
+  {{#if xrd.metadata.uid}}uid: {{xrd.metadata.uid}}{{/if}}
+  {{#if xrd.metadata.resourceVersion}}resourceVersion: {{xrd.metadata.resourceVersion}}{{/if}}
+  {{#if xrd.metadata.generation}}generation: {{xrd.metadata.generation}}{{/if}}
+  {{#if xrd.metadata.creationTimestamp}}creationTimestamp: {{xrd.metadata.creationTimestamp}}{{/if}}
+
+# ----------------------------------------------------------------------------
+# XRD Labels
+# ----------------------------------------------------------------------------
+{{#if xrd.metadata.labels}}
+xrd_labels:
+  {{#each xrd.metadata.labels}}
+  {{@key}}: "{{this}}"
+  {{/each}}
+{{else}}
+xrd_labels: {}
+{{/if}}
+
+# ----------------------------------------------------------------------------
+# XRD Annotations
+# ----------------------------------------------------------------------------
+{{#if xrd.metadata.annotations}}
+xrd_annotations:
+  {{#each xrd.metadata.annotations}}
+  {{@key}}: "{{this}}"
+  {{/each}}
+{{else}}
+xrd_annotations: {}
+{{/if}}
+
+# ----------------------------------------------------------------------------
+# XRD Spec
+# ----------------------------------------------------------------------------
+xrd_spec:
+  apiVersion: {{xrd.apiVersion}}
+  kind: {{xrd.kind}}
+  group: {{xrd.spec.group}}
+
+  names:
+    kind: {{xrd.spec.names.kind}}
+    plural: {{xrd.spec.names.plural}}
+    {{#if xrd.spec.names.singular}}singular: {{xrd.spec.names.singular}}{{/if}}
+    {{#if xrd.spec.names.listKind}}listKind: {{xrd.spec.names.listKind}}{{/if}}
+    {{#if xrd.spec.names.shortNames}}
+    shortNames:
+      {{#each xrd.spec.names.shortNames}}
+      - {{this}}
+      {{/each}}
+    {{/if}}
+    {{#if xrd.spec.names.categories}}
+    categories:
+      {{#each xrd.spec.names.categories}}
+      - {{this}}
+      {{/each}}
+    {{/if}}
+
+  {{#if xrd.spec.claimNames}}
+  claimNames:
+    kind: {{xrd.spec.claimNames.kind}}
+    plural: {{xrd.spec.claimNames.plural}}
+  {{/if}}
+
+  versions:
+    count: {{xrd.spec.versions.length}}
+    list:
+      {{#each xrd.spec.versions}}
+      - name: {{name}}
+        served: {{served}}
+        referenceable: {{referenceable}}
+        {{#if deprecated}}deprecated: {{deprecated}}{{/if}}
+        {{#if deprecationWarning}}deprecationWarning: {{deprecationWarning}}{{/if}}
+      {{/each}}
+
+# ----------------------------------------------------------------------------
+# Extraction Metadata
+# ----------------------------------------------------------------------------
+{{#if metadata}}
+extraction_metadata:
+  {{#if metadata.cluster}}cluster: {{metadata.cluster}}{{/if}}
+  {{#if metadata.namespace}}namespace: {{metadata.namespace}}{{/if}}
+  {{#if metadata.path}}path: {{metadata.path}}{{/if}}
+  {{#each metadata}}
+  {{#unless (eq @key "cluster")}}
+  {{#unless (eq @key "namespace")}}
+  {{#unless (eq @key "path")}}
+  {{@key}}: {{json this}}
+  {{/unless}}
+  {{/unless}}
+  {{/unless}}
+  {{/each}}
+  source: {{source}}
+  timestamp: {{timestamp}}
+{{/if}}
+
+# ----------------------------------------------------------------------------
+# Helper Function Examples (showing actual output)
+# ----------------------------------------------------------------------------
+helper_examples:
+  slugify:
+    input: "{{xrd.metadata.name}}"
+    output: "{{slugify xrd.metadata.name}}"
+
+  extractTitle:
+    input: "xrd"
+    output: "{{extractTitle xrd}}"
+
+  getAnnotation:
+    template: "{{getAnnotation xrd "backstage.io/template"}}"
+    title: "{{getAnnotation xrd "backstage.io/title"}}"
+    owner: "{{getAnnotation xrd "backstage.io/owner"}}"
+    tags: "{{getAnnotation xrd "openportal.dev/tags"}}"
+
+  getLabel:
+    generateForm: "{{getLabel xrd "terasky.backstage.io/generate-form"}}"
+
+  split:
+    input: "a,b,c"
+    output: {{json (split "a,b,c" ",")}}
+
+  trim:
+    input: "  spaces  "
+    output: "{{trim "  spaces  "}}"
+
+  backstageVar:
+    input: "parameters.name"
+    output: "{{backstageVar "parameters.name"}}"
+
+  eq:
+    input: '"test" == "test"'
+    output: {{eq "test" "test"}}
+
+  includes:
+    input: '["a","b","c"] includes "b"'
+    output: {{includes (split "a,b,c" ",") "b"}}
+
+  json:
+    input: "xrd.spec.names"
+    output: '{{{json xrd.spec.names}}}'
+
+# ----------------------------------------------------------------------------
+# Extracted Properties (via extractProperties helper)
+# ----------------------------------------------------------------------------
+{{#with (extractProperties xrd) as |props|}}
+extracted_properties:
+  count: {{#if props}}{{props.length}}{{else}}0{{/if}}
+  {{#if props}}
+  properties:
+    {{#each props}}
+    - name: {{name}}
+      title: {{title}}
+      type: {{type}}
+      {{#if description}}description: {{description}}{{/if}}
+      {{#if required}}required: true{{/if}}
+      {{#if default}}default: {{json default}}{{/if}}
+      {{#if enum}}enum: {{json enum}}{{/if}}
+      {{#if pattern}}pattern: "{{pattern}}"{{/if}}
+      {{#if minimum}}minimum: {{minimum}}{{/if}}
+      {{#if maximum}}maximum: {{maximum}}{{/if}}
+    {{/each}}
+  {{else}}
+  properties: []
+  note: "No properties found in XRD schema"
+  {{/if}}
+{{/with}}
+
+# ----------------------------------------------------------------------------
+# Template Configuration (from annotations)
+# ----------------------------------------------------------------------------
+template_config:
+  backstage_template: "{{#if (getAnnotation xrd "backstage.io/template")}}{{getAnnotation xrd "backstage.io/template"}}{{else}}[not set]{{/if}}"
+  api_template: "{{#if (getAnnotation xrd "backstage.io/api-template")}}{{getAnnotation xrd "backstage.io/api-template"}}{{else}}[not set]{{/if}}"
+  parameters_template: "{{#if (getAnnotation xrd "backstage.io/parameters-template")}}{{getAnnotation xrd "backstage.io/parameters-template"}}{{else}}[not set]{{/if}}"
+  steps_template: "{{#if (getAnnotation xrd "backstage.io/steps-template")}}{{getAnnotation xrd "backstage.io/steps-template"}}{{else}}[not set]{{/if}}"
+  title: "{{#if (getAnnotation xrd "backstage.io/title")}}{{getAnnotation xrd "backstage.io/title"}}{{else}}[not set]{{/if}}"
+  description: "{{#if (getAnnotation xrd "backstage.io/description")}}{{getAnnotation xrd "backstage.io/description"}}{{else}}[not set]{{/if}}"
+  owner: "{{#if (getAnnotation xrd "backstage.io/owner")}}{{getAnnotation xrd "backstage.io/owner"}}{{else}}[not set]{{/if}}"
+  tags: "{{#if (getAnnotation xrd "openportal.dev/tags")}}{{getAnnotation xrd "openportal.dev/tags"}}{{else}}[not set]{{/if}}"
+
+# ----------------------------------------------------------------------------
+# Usage Guide - How to Access Variables in Templates
+# ----------------------------------------------------------------------------
+usage_guide:
+  accessing_xrd_name:
+    template: "{{xrd.metadata.name}}"
+    result: "{{xrd.metadata.name}}"
+
+  accessing_group:
+    template: "{{xrd.spec.group}}"
+    result: "{{xrd.spec.group}}"
+
+  accessing_kind:
+    template: "{{xrd.spec.names.kind}}"
+    result: "{{xrd.spec.names.kind}}"
+
+  accessing_first_version:
+    template: "{{xrd.spec.versions.[0].name}}"
+    result: "{{xrd.spec.versions.[0].name}}"
+
+  accessing_annotation:
+    template: '{{getAnnotation xrd "backstage.io/template"}}'
+    result: "{{getAnnotation xrd "backstage.io/template"}}"
+
+  accessing_label:
+    template: '{{getLabel xrd "terasky.backstage.io/generate-form"}}'
+    result: "{{getLabel xrd "terasky.backstage.io/generate-form"}}"
+
+  conditional_check:
+    template: "{{#if xrd.metadata.namespace}}yes{{else}}no{{/if}}"
+    result: "{{#if xrd.metadata.namespace}}yes{{else}}no{{/if}}"
+
+  iteration:
+    template: "{{#each xrd.spec.versions}}{{name}} {{/each}}"
+    result: "{{#each xrd.spec.versions}}{{name}} {{/each}}"
+
+  helper_function:
+    template: "{{slugify xrd.metadata.name}}"
+    result: "{{slugify xrd.metadata.name}}"
+
+# ============================================================================
+# Full XRD Object (for reference)
+# ============================================================================
+# full_xrd: {{json xrd}}

@@ -1,0 +1,71 @@
+{{!--
+  Default Parameters Template
+  Generates the parameters section for Backstage scaffolder templates
+  Works with both namespaced and cluster-scoped resources
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - helpers: Utility functions
+  - source: Source of the XRD
+  - timestamp: When extracted
+--}}
+spec:
+  parameters:
+    - title: Resource Configuration
+      required:
+        - name
+{{#if (eq xrd.spec.scope "Namespaced")}}
+        - namespace
+{{/if}}
+{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
+{{#each props}}
+{{#if required}}
+        - {{name}}
+{{/if}}
+{{/each}}
+{{/with}}
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Name of the {{xrd.spec.names.kind}}
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+{{#if (eq xrd.spec.scope "Namespaced")}}
+        namespace:
+          title: Namespace
+          type: string
+          description: Kubernetes namespace
+          default: default
+{{/if}}
+{{#with (filterProperties (extractProperties xrd) "name") as |props|}}
+{{#each props}}
+        {{name}}:
+          title: {{title}}
+          type: {{type}}
+{{#if description}}
+          description: "{{description}}"
+{{/if}}
+{{#if default}}
+          default: {{json default}}
+{{/if}}
+{{#if enum}}
+          enum: {{json enum}}
+{{/if}}
+{{#if pattern}}
+          pattern: {{pattern}}
+{{/if}}
+{{#if minLength}}
+          minLength: {{minLength}}
+{{/if}}
+{{#if maxLength}}
+          maxLength: {{maxLength}}
+{{/if}}
+{{#if minimum}}
+          minimum: {{minimum}}
+{{/if}}
+{{#if maximum}}
+          maximum: {{maximum}}
+{{/if}}
+{{/each}}
+{{/with}}

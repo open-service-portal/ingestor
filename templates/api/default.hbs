@@ -1,0 +1,95 @@
+{{!--
+  API Documentation Template
+  Generates API entity for XRD
+--}}
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: {{slugify xrd.metadata.name}}-api
+  title: {{extractTitle xrd}} API
+  description: API specification for {{xrd.spec.names.kind}}
+  tags:
+    - crossplane
+    - ingestor
+    - {{replace xrd.spec.group "." "-"}}
+  annotations:
+    backstage.io/managed-by: xrd-transform
+    backstage.io/managed-by-location: "provider:XRDTemplateEntityProvider"
+    backstage.io/managed-by-origin-location: "provider:XRDTemplateEntityProvider"
+    crossplane.io/xrd-name: {{xrd.metadata.name}}
+spec:
+  type: openapi
+  lifecycle: {{#if (getAnnotation xrd "backstage.io/lifecycle")}}{{getAnnotation xrd "backstage.io/lifecycle"}}{{else}}experimental{{/if}}
+  owner: {{#if (getAnnotation xrd "backstage.io/owner")}}{{getAnnotation xrd "backstage.io/owner"}}{{else}}platform-team{{/if}}
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: {{xrd.spec.names.kind}} API
+      version: {{xrd.spec.versions.[0].name}}
+      description: OpenAPI specification for {{xrd.spec.names.kind}}
+    paths:
+      /{{xrd.spec.names.plural}}:
+        get:
+          summary: List {{xrd.spec.names.plural}}
+          responses:
+            '200':
+              description: Success
+        post:
+          summary: Create {{xrd.spec.names.kind}}
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      description: {{xrd.spec.names.kind}} configuration
+                      properties:
+{{#each (extractProperties xrd)}}
+                        {{name}}:
+                          type: {{type}}
+{{#if description}}
+                          description: "{{description}}"
+{{/if}}
+{{#if pattern}}
+                          pattern: {{pattern}}
+{{/if}}
+{{#if minLength}}
+                          minLength: {{minLength}}
+{{/if}}
+{{#if maxLength}}
+                          maxLength: {{maxLength}}
+{{/if}}
+{{#if minimum}}
+                          minimum: {{minimum}}
+{{/if}}
+{{#if maximum}}
+                          maximum: {{maximum}}
+{{/if}}
+{{/each}}
+{{#with (extractProperties xrd) as |props|}}
+{{#if (hasAny props "required")}}
+                      required:
+{{#each props}}
+{{#if required}}
+                        - {{name}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{/with}}
+                    status:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the resource is ready
+                        phase:
+                          type: string
+                          description: Current phase of the resource
+                        message:
+                          type: string
+                          description: Status message
+          responses:
+            '201':
+              description: Created

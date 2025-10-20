@@ -2,7 +2,11 @@
 
 /**
  * Ingestor CLI entry point
- * This script delegates to the compiled JavaScript
+ * This script uses ts-node to run the xrd-transform CLI
+ * (The old ingestor CLI was removed during refactoring)
  */
 
-require('../dist/cli/ingestor-cli');
+require('ts-node').register({
+  project: require('path').join(__dirname, '..', 'tsconfig.cli.json')
+});
+require('../src/xrd-transform/cli/xrd-transform-cli');

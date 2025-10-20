@@ -1,0 +1,15 @@
+{{!--
+  Download Manifest Output Block
+  Provides a download link for the generated Kubernetes manifest
+
+  Available variables:
+  - xrd: The full XRD object
+  - metadata: Extraction metadata
+  - config: Configuration from app-config
+--}}
+spec:
+  output:
+    links:
+      - title: Download YAML Manifest
+        icon: docs
+        url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['generateManifest'].output.manifest || steps['create-resource'].output.manifest || '')"}}}

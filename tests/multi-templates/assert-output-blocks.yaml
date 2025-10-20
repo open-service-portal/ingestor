@@ -1,0 +1,44 @@
+# TEST ASSERTION - DO NOT BLINDLY REGENERATE
+#
+# Test: output-blocks
+# Purpose: Tests YAML merge with two output templates (download + pr)
+# Scenario: multi-templates
+#
+# This file contains the EXPECTED output for this test case.
+# It should only be updated when:
+#   1. Adding NEW features that intentionally change output
+#   2. Fixing BUGS where the old output was incorrect
+#   3. Modifying templates with a clear, documented purpose
+#
+# NEVER blindly regenerate this file without understanding WHY the output changed!
+#
+# To update after reviewing changes:
+#   cp tests/output/multi-templates-output-blocks.yaml tests/multi-templates/assert-output-blocks.yaml
+#
+# This header will be stripped during test comparison.
+# ---
+
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: multioutput-test-example-com
+  title: MultiOutput
+spec:
+  owner: test-owner
+  type: test-resource
+  parameters:
+    - title: Test Parameters
+      properties:
+        name:
+          type: string
+  steps:
+    - id: test-step
+      name: Test Step
+      action: test:action
+  output:
+    links:
+      - title: Download
+        url: block-download-url
+      - title: Pull Request
+        url: block-pr-url
+

@@ -1,47 +1,72 @@
-# Kubernetes Ingestor Plugin Architecture
+# Ingestor Plugin Architecture
 
 ## Overview
 
-The Kubernetes Ingestor plugin is a Backstage backend module that automatically discovers and ingests Kubernetes resources into the Backstage catalog. It supports both standard Kubernetes resources and Crossplane resources (XRDs, CRDs, Claims, and Composites).
+The Ingestor plugin is a Backstage backend module that automatically discovers Kubernetes resources and transforms Crossplane XRDs into Backstage entities. The plugin uses a modular architecture with a template-based transformation system for generating Backstage templates from XRDs.
 
 ## Directory Structure
 
 ```
-kubernetes-ingestor/
+ingestor/
 ├── src/
-│   ├── interfaces/              # Type definitions and interfaces
-│   │   ├── BackstageLink.ts    # Link interface for Backstage entities
-│   │   └── index.ts            # Barrel export
+│   ├── backstage-plugin/         # Backstage integration
+│   │   ├── entity-providers/     # Entity provider implementations
+│   │   │   ├── XRDTemplateEntityProvider.ts   # XRD/CRD template generation
+│   │   │   ├── KubernetesEntityProvider.ts    # K8s resource ingestion
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── interfaces/           # Type definitions
+│   │   │   ├── BackstageLink.ts  # Link interface for entities
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── data-providers/       # Data fetching providers
+│   │   │   ├── CRDDataProvider.ts           # Fetches CRD definitions
+│   │   │   ├── XRDDataProvider.ts           # Fetches XRD definitions
+│   │   │   ├── KubernetesDataProvider.ts    # Fetches K8s resources
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── services/             # Core services
+│   │   │   ├── KubernetesResourceFetcher.ts # K8s API client wrapper
+│   │   │   ├── LoggerWrapper.ts            # Winston logger adapter
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── module.ts             # Backend module registration
+│   │   └── types.ts              # Plugin-specific types
 │   │
-│   ├── entity-providers/        # Entity provider implementations
-│   │   ├── XRDTemplateEntityProvider.ts    # Handles XRD/CRD template generation
-│   │   ├── KubernetesEntityProvider.ts     # Handles K8s resource ingestion
-│   │   └── index.ts                        # Barrel export
+│   ├── xrd-transform/            # XRD transformation tool (NEW!)
+│   │   ├── cli/                  # CLI interface
+│   │   │   └── xrd-transform-cli.ts    # Command-line tool
+│   │   │
+│   │   ├── lib/                  # Core transformation library
+│   │   │   ├── transform.ts      # XRDTransformer class
+│   │   │   └── types.ts          # Transform-specific types
+│   │   │
+│   │   ├── helpers/              # Template helper functions
+│   │   │   └── index.ts          # Handlebars helpers
+│   │   │
+│   │   └── index.ts              # Public API exports
 │   │
-│   ├── data-providers/          # Data fetching providers
-│   │   ├── CRDDataProvider.ts             # Fetches CRD definitions
-│   │   ├── XRDDataProvider.ts             # Fetches XRD definitions
-│   │   ├── KubernetesDataProvider.ts      # Fetches K8s resources
-│   │   └── index.ts                        # Barrel export
-│   │
-│   ├── services/                # Core services
-│   │   ├── KubernetesResourceFetcher.ts   # K8s API client wrapper
-│   │   ├── LoggerWrapper.ts              # Winston logger adapter
-│   │   └── index.ts                       # Barrel export
-│   │
-│   ├── providers/               # Re-exports for backward compatibility
-│   │   └── index.ts            # Re-exports entity and data providers
-│   │
-│   ├── types.ts                # Shared type definitions
-│   ├── module.ts               # Backend module registration
-│   └── index.ts               # Main entry point
+│   ├── index.ts                  # Main entry point
+│   └── types.ts                  # Shared type definitions
 │
-├── config.d.ts                 # Configuration schema
-├── package.json               # Package metadata
-└── tsconfig.json             # TypeScript configuration
+├── templates/                    # Handlebars templates (NEW!)
+│   ├── backstage/               # Main Backstage Template entities
+│   │   └── default.hbs
+│   ├── parameters/              # Scaffolder form parameters
+│   │   └── default.hbs
+│   ├── steps/                   # Scaffolder workflow steps
+│   │   └── default.hbs
+│   ├── api/                     # API documentation entities
+│   │   └── default.hbs
+│   └── README.md                # Template development guide
+│
+├── docs/                        # Documentation
+├── config.d.ts                  # Configuration schema
+├── package.json                 # Package metadata
+└── tsconfig.json               # TypeScript configuration
 ```
 
-## Component Flow Diagram
+## Architecture Diagram
 
 ```mermaid
 graph TB
@@ -61,6 +86,13 @@ graph TB
         CDP[CRDDataProvider]
     end
 
+    subgraph "XRD Transform System"
+        XT[XRDTransformer]
+        HBS[Handlebars Engine]
+        TPL[Templates]
+        HELP[Helper Functions]
+    end
+
     subgraph "Services"
         KRF[KubernetesResourceFetcher]
         LW[LoggerWrapper]
@@ -68,7 +100,7 @@ graph TB
 
     subgraph "Kubernetes Clusters"
         K8S[Kubernetes API]
-        XP[Crossplane Resources]
+        XRD[Crossplane XRDs]
     end
 
     subgraph "Backstage Catalog"
@@ -84,13 +116,18 @@ graph TB
     KEP --> XDP
     XEP --> XDP
     XEP --> CDP
+    XEP --> XT
 
     KDP --> KRF
     XDP --> KRF
     CDP --> KRF
 
+    XT --> HBS
+    HBS --> TPL
+    XT --> HELP
+
     KRF --> K8S
-    K8S --> XP
+    K8S --> XRD
 
     KEP --> CAT
     XEP --> CAT
@@ -98,313 +135,327 @@ graph TB
 
     KEP -.-> LW
     XEP -.-> LW
+    XT -.-> LW
 ```
 
-## Class Dependency Diagram
+## Component Overview
 
-```mermaid
-classDiagram
-    class EntityProvider {
-        <<interface>>
-        +getProviderName() string
-        +connect(connection) Promise
-    }
+### 1. Backstage Plugin Layer
 
-    class KubernetesEntityProvider {
-        -connection: EntityProviderConnection
-        -taskRunner: SchedulerServiceTaskRunner
-        -logger: LoggerService
-        -config: Config
-        -resourceFetcher: DefaultKubernetesResourceFetcher
-        +getProviderName() string
-        +connect(connection) Promise
-        +run() Promise
-        -translateKubernetesObjectsToEntities(resource) Entity[]
-        -translateCrossplaneClaimToEntity(claim, clusterName, crdMapping) Entity
-        -translateCrossplaneCompositeToEntity(xr, clusterName, lookup) Entity
-    }
+#### Entity Providers
 
-    class XRDTemplateEntityProvider {
-        -connection: EntityProviderConnection
-        -taskRunner: SchedulerServiceTaskRunner
-        -logger: Logger
-        -config: Config
-        -resourceFetcher: DefaultKubernetesResourceFetcher
-        +getProviderName() string
-        +connect(connection) Promise
-        +run() Promise
-        -translateXRDVersionsToTemplates(xrd) Entity[]
-        -translateXRDVersionsToAPI(xrd) Entity[]
-        -translateCRDToTemplate(crd) Entity[]
-        -translateCRDVersionsToAPI(crd) Entity[]
-    }
+**XRDTemplateEntityProvider**
+- Discovers Crossplane XRDs from Kubernetes clusters
+- Uses XRDTransformer to generate Backstage Template entities
+- Supports annotation-based template selection
+- Generates both Template and API documentation entities
 
-    class KubernetesDataProvider {
-        -resourceFetcher: KubernetesResourceFetcher
-        -config: Config
-        -logger: Logger
-        +fetchKubernetesObjects() Promise
-        +fetchCRDMapping() Promise
-    }
+**KubernetesEntityProvider**
+- Discovers standard Kubernetes resources
+- Converts resources to Backstage Component entities
+- Extracts metadata and relationships
+- Supports XR status link extraction
 
-    class XRDDataProvider {
-        -resourceFetcher: KubernetesResourceFetcher
-        -config: Config
-        -logger: Logger
-        +fetchXRDObjects() Promise
-        +buildCompositeKindLookup() Promise
-    }
+#### Data Providers
 
-    class CRDDataProvider {
-        -resourceFetcher: KubernetesResourceFetcher
-        -config: Config
-        -logger: Logger
-        +fetchCRDObjects() Promise
-    }
+**XRDDataProvider**
+- Fetches Crossplane Composite Resource Definitions
+- Filters by labels and annotations
+- Provides structured XRD data to entity providers
 
-    class DefaultKubernetesResourceFetcher {
-        -client: KubernetesAuthTranslator
-        -customResources: KubernetesCustomResource[]
-        -logger: LoggerService
-        +getClusters() Promise
-        +fetchResources(options) Promise
-        +fetchResource(options) Promise
-        +proxyKubernetesRequest(clusterName, request) Promise
-    }
+**CRDDataProvider**
+- Fetches standard Kubernetes Custom Resource Definitions
+- Used for CRD-based template generation
 
-    class BackstageLink {
-        <<interface>>
-        +url: string
-        +title: string
-        +icon: string
-    }
+**KubernetesDataProvider**
+- Generic Kubernetes resource fetching
+- Supports any resource kind/version
+- Namespace filtering and label selectors
 
-    EntityProvider <|.. KubernetesEntityProvider
-    EntityProvider <|.. XRDTemplateEntityProvider
+#### Services
 
-    KubernetesEntityProvider --> KubernetesDataProvider
-    KubernetesEntityProvider --> XRDDataProvider
-    KubernetesEntityProvider --> DefaultKubernetesResourceFetcher
+**KubernetesResourceFetcher**
+- Wrapper around Kubernetes client
+- Handles authentication and cluster connections
+- Provides consistent error handling
+- Supports multiple cluster configurations
 
-    XRDTemplateEntityProvider --> XRDDataProvider
-    XRDTemplateEntityProvider --> CRDDataProvider
-    XRDTemplateEntityProvider --> DefaultKubernetesResourceFetcher
+**LoggerWrapper**
+- Adapts Winston logger to plugin needs
+- Consistent logging across components
+- Debug and error tracking
 
-    KubernetesDataProvider --> DefaultKubernetesResourceFetcher
-    XRDDataProvider --> DefaultKubernetesResourceFetcher
-    CRDDataProvider --> DefaultKubernetesResourceFetcher
+### 2. XRD Transform System (NEW!)
 
-    KubernetesEntityProvider ..> BackstageLink
-    XRDTemplateEntityProvider ..> BackstageLink
+The XRD Transform system is the core of template generation, using a modular Handlebars-based approach.
+
+#### XRDTransformer Class
+
+Located in `src/xrd-transform/lib/transform.ts`:
+
+```typescript
+export class XRDTransformer {
+  private handlebars: typeof Handlebars;
+  private templateDir: string;
+  private helpers: ReturnType<typeof createHelpers>;
+
+  async transform(xrdData: XRDExtractData, options?: TransformOptions): Promise<TransformResult>
+  async transformBatch(xrdDataArray: XRDExtractData[], options?: TransformOptions): Promise<TransformResult>
+}
+```
+
+**Key Features:**
+- **Modular Templates**: Separate templates for parameters, steps, main structure
+- **Helper Functions**: Custom Handlebars helpers for XRD processing
+- **Annotation-Based**: Template selection via XRD annotations
+- **Multi-Stage Rendering**: Parameters and steps rendered first, then composed
+
+#### Template System
+
+Templates are organized by function:
+
+**Main Templates (`templates/backstage/`)**
+- `default.hbs` - Standard Backstage Template entity structure
+- Composes pre-rendered parameters and steps
+
+**Parameter Templates (`templates/parameters/`)**
+- `default.hbs` - Scaffolder form field generation
+- Extracts properties from XRD schema
+- Generates validation rules
+
+**Step Templates (`templates/steps/`)**
+- `default.hbs` - Scaffolder workflow definition
+- Creates kubernetes:apply actions
+- Handles catalog registration
+
+**API Templates (`templates/api/`)**
+- `default.hbs` - OpenAPI documentation generation
+- Documents resource endpoints
+- Includes schema definitions
+
+#### Helper Functions
+
+Located in `src/xrd-transform/helpers/index.ts`:
+
+- `slugify(text)` - Convert text to URL-safe format
+- `extractTitle(xrd)` - Get human-readable title
+- `extractProperties(xrd)` - Parse schema properties
+- `getAnnotation(xrd, key)` - Get annotation value
+- `getLabel(xrd, key)` - Get label value
+- `backstageVar(path)` - Preserve Backstage variable syntax
+- `split(str, delimiter)` - Split comma-separated strings
+- `trim(str)` - Remove whitespace
+
+#### Annotation-Based Template Selection
+
+XRDs can specify which templates to use:
+
+```yaml
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: databases.platform.io
+  annotations:
+    openportal.dev/template-api: "default"          # API docs
+    openportal.dev/template: "default"              # Main template
+    openportal.dev/template-parameters: "database"  # Custom form fields
+    openportal.dev/template-steps: "gitops"         # Custom workflow
+    openportal.dev/tags: "database,storage"         # Comma-separated tags
+```
+
+### 3. CLI Tools
+
+#### XRD Transform CLI
+
+Located in `src/xrd-transform/cli/xrd-transform-cli.ts`:
+
+**Features:**
+- Transform XRDs from files or stdin
+- Entity type filtering (`--only template|api`)
+- Custom template directories (`-t`)
+- Output to files or stdout (`-o`)
+- Verbose mode for debugging (`-v`)
+
+**Usage:**
+```bash
+npx ts-node src/xrd-transform/cli/xrd-transform-cli.ts xrd.yaml --only template
+```
+
+**Wrapper Script:**
+The workspace provides `scripts/xrd-transform.sh` for easier access:
+```bash
+./scripts/xrd-transform.sh template-namespace/configuration/xrd.yaml
 ```
 
 ## Data Flow
 
-### 1. Initialization Flow
+### Template Generation Flow
 
-```mermaid
-sequenceDiagram
-    participant BM as Backend Module
-    participant Cat as Catalog Builder
-    participant Sched as Scheduler
-    participant KEP as KubernetesEntityProvider
-    participant XEP as XRDTemplateEntityProvider
+1. **Discovery**: XRDTemplateEntityProvider discovers XRDs from Kubernetes
+2. **Fetch**: XRDDataProvider fetches XRD YAML via KubernetesResourceFetcher
+3. **Extract**: XRD data is structured with metadata (cluster, namespace, etc.)
+4. **Transform**:
+   - XRDTransformer reads template configuration from annotations
+   - Renders parameters template with XRD context
+   - Renders steps template with XRD context
+   - Composes main template with pre-rendered sections
+5. **Parse**: YAML output is parsed into entity objects
+6. **Register**: Entities are provided to Backstage catalog
 
-    BM->>Cat: Register providers
-    Cat->>KEP: Create instance
-    Cat->>XEP: Create instance
-    Cat->>Sched: Schedule tasks
-    Sched->>KEP: connect()
-    Sched->>XEP: connect()
-    KEP->>KEP: Start scheduled run
-    XEP->>XEP: Start scheduled run
-```
+### Resource Ingestion Flow
 
-### 2. Kubernetes Resource Ingestion Flow
-
-```mermaid
-sequenceDiagram
-    participant KEP as KubernetesEntityProvider
-    participant KDP as KubernetesDataProvider
-    participant KRF as KubernetesResourceFetcher
-    participant K8S as Kubernetes API
-    participant Cat as Catalog API
-
-    KEP->>KDP: fetchKubernetesObjects()
-    KDP->>KRF: fetchResources()
-    KRF->>K8S: GET /api/v1/namespaces
-    K8S-->>KRF: Namespace list
-    KRF->>K8S: GET /apis/apps/v1/deployments
-    K8S-->>KRF: Deployment list
-    KRF-->>KDP: Resources
-    KDP-->>KEP: K8s objects
-
-    KEP->>KEP: translateKubernetesObjectsToEntities()
-    KEP->>Cat: applyMutation(entities)
-    Cat-->>KEP: Success
-```
-
-### 3. Crossplane Template Generation Flow
-
-```mermaid
-sequenceDiagram
-    participant XEP as XRDTemplateEntityProvider
-    participant XDP as XRDDataProvider
-    participant CDP as CRDDataProvider
-    participant KRF as KubernetesResourceFetcher
-    participant K8S as Kubernetes API
-    participant Cat as Catalog API
-
-    XEP->>CDP: fetchCRDObjects()
-    CDP->>KRF: fetchResources(CRDs)
-    KRF->>K8S: GET /apis/apiextensions.k8s.io/v1/customresourcedefinitions
-    K8S-->>KRF: CRD list
-    KRF-->>CDP: CRDs
-    CDP-->>XEP: CRD data
-
-    XEP->>XDP: fetchXRDObjects()
-    XDP->>KRF: fetchResources(XRDs)
-    KRF->>K8S: GET XRDs
-    K8S-->>KRF: XRD list
-    KRF-->>XDP: XRDs
-    XDP-->>XEP: XRD data
-
-    XEP->>XEP: translateXRDVersionsToTemplates()
-    XEP->>XEP: translateCRDToTemplate()
-    XEP->>Cat: applyMutation(templates)
-    Cat-->>XEP: Success
-```
-
-## Key Features
-
-### 1. Multi-Cluster Support
-- Discovers resources across multiple Kubernetes clusters
-- Maintains cluster context in entity metadata
-- Configurable cluster discovery
-
-### 2. Crossplane Integration
-- **XRD Support**: Generates Backstage templates from Crossplane XRDs
-- **CRD Support**: Creates templates for generic CRDs
-- **Claim Processing**: Ingests Crossplane claims as components
-- **Composite Resources**: Supports v2 Cluster/Namespaced XRs
-- **Version Detection**: Automatically detects Crossplane v1 vs v2
-
-### 3. Entity Generation
-- **Components**: K8s workloads become Backstage components
-- **Systems**: Namespaces/clusters mapped to systems
-- **APIs**: OpenAPI specs generated from CRDs/XRDs
-- **Templates**: Scaffolder templates for resource creation
-
-### 4. Annotation Mapping
-- Custom annotation prefix support
-- Automatic label selector generation
-- Link parsing for external references
-- Owner and lifecycle mapping
+1. **Discovery**: KubernetesEntityProvider discovers resources from Kubernetes
+2. **Fetch**: KubernetesDataProvider fetches resource YAMLs
+3. **Extract**: Metadata and status links are extracted
+4. **Transform**: Resources are converted to Component entities
+5. **Enrich**: Links and relationships are added
+6. **Register**: Entities are provided to Backstage catalog
 
 ## Configuration
 
-The plugin is configured through `app-config.yaml`:
+The plugin supports extensive configuration:
 
 ```yaml
 kubernetesIngestor:
-  enabled: true
-  annotationPrefix: 'terasky.backstage.io'
-
+  components:
+    enabled: true
+    excludedNamespaces:
+      - kube-system
   crossplane:
     enabled: true
     xrds:
       enabled: true
-      publishPhase:
-        target: github
-        allowRepoSelection: true
-      convertDefaultValuesToPlaceholders: false
-
-  genericCRDTemplates:
-    enabled: true
-    publishPhase:
-      target: github
-      allowRepoSelection: true
-
-  components:
-    enabled: true
-
-  mappings:
-    namespaceModel: 'cluster'
-    systemModel: 'namespace'
-    referencesNamespaceModel: 'default'
-
-  clusters:
-    - name: 'production'
-      authProvider: serviceAccount
-      url: 'https://k8s-api.prod.example.com'
+      templateDir: ./custom-templates  # Optional custom templates
 ```
 
-## Error Handling
+See [configuration.md](./configuration.md) for complete reference.
 
-```mermaid
-graph TD
-    A[Resource Fetch] --> B{Success?}
-    B -->|Yes| C[Process Resource]
-    B -->|No| D[Log Error]
+## Extension Points
 
-    C --> E{Valid Entity?}
-    E -->|Yes| F[Add to Catalog]
-    E -->|No| G[Log Warning]
+### Custom Templates
 
-    D --> H[Continue with next resource]
-    G --> H
-    F --> H
+Create custom templates for specific use cases:
 
-    H --> I{More resources?}
-    I -->|Yes| A
-    I -->|No| J[Complete]
+1. **Copy built-in templates**:
+   ```bash
+   cp -r templates my-templates
+   ```
+
+2. **Modify templates**:
+   ```bash
+   vim my-templates/parameters/database.hbs
+   ```
+
+3. **Use via annotation**:
+   ```yaml
+   metadata:
+     annotations:
+       openportal.dev/template-parameters: "database"
+   ```
+
+4. **Configure plugin**:
+   ```yaml
+   kubernetesIngestor:
+     crossplane:
+       xrds:
+         templateDir: ./my-templates
+   ```
+
+### Custom Helpers
+
+Add custom Handlebars helpers in `src/xrd-transform/helpers/index.ts`:
+
+```typescript
+export function createHelpers() {
+  return {
+    myCustomHelper: (value: string) => {
+      // Custom logic
+      return transformedValue;
+    },
+    // ... other helpers
+  };
+}
+```
+
+## Testing
+
+The plugin includes comprehensive testing:
+
+- **Unit Tests**: Test individual components
+- **Integration Tests**: Test complete transformation flows
+- **CLI Tests**: Test command-line interface
+- **Template Tests**: Test template rendering
+
+Run tests:
+```bash
+yarn test
 ```
 
 ## Performance Considerations
 
-1. **Batch Processing**: Resources are fetched in batches to reduce API calls
-2. **Scheduled Runs**: Uses Backstage scheduler to avoid continuous polling
-3. **Parallel Fetching**: Multiple clusters processed in parallel
-4. **Entity Validation**: Names validated before catalog insertion (63 char limit)
-5. **Connection Reuse**: K8s client connections are reused across requests
+- **Caching**: Template compilation is cached per XRDTransformer instance
+- **Batch Processing**: Multiple XRDs can be transformed together
+- **Scheduling**: Entity providers use configurable refresh intervals
+- **Resource Filtering**: Namespace and label filters reduce API calls
 
 ## Security
 
-- Uses Backstage's authentication framework
-- Supports multiple auth providers (ServiceAccount, OAuth, etc.)
-- Respects RBAC permissions in Kubernetes
-- No credentials stored in code
-
-## Extensibility Points
-
-1. **Custom Resource Types**: Add new resource types via configuration
-2. **Annotation Processors**: Extend annotation mapping logic
-3. **Template Generators**: Custom template generation for specific CRDs
-4. **Entity Transformers**: Override default entity generation logic
+- **RBAC**: Requires appropriate Kubernetes service account permissions
+- **Template Validation**: Templates are validated before use
+- **Input Sanitization**: XRD data is sanitized before template rendering
+- **Secret Handling**: No secrets are included in generated entities
 
 ## Troubleshooting
 
+### Template Errors
+
+**Template not found:**
+```
+Error: Template not found: custom-template (and no default.hbs)
+```
+- Ensure template exists in `templates/{type}/` directory
+- Check template name matches annotation value
+- Verify `templateDir` configuration
+
+**YAML parsing errors:**
+```
+Failed to parse template output as YAML
+```
+- Check template indentation (YAML requires precise spacing)
+- Use `{{{variable}}}` for pre-rendered content (triple braces)
+- Test template with `--verbose` flag
+
 ### Common Issues
 
-1. **Entities not appearing**: Check scheduler logs and K8s permissions
-2. **Template generation fails**: Verify XRD/CRD schema validity
-3. **Connection errors**: Validate cluster configuration and network access
-4. **Name validation failures**: Ensure resource names are < 63 characters
+1. **XRDs not discovered**: Check RBAC permissions
+2. **Templates not generated**: Verify XRD has required schema
+3. **Custom templates not loaded**: Check `templateDir` path
+4. **Helper function errors**: Ensure helpers return correct types
 
-### Debug Logging
+## Migration from Legacy System
 
-Enable debug logging in `app-config.yaml`:
+The plugin was refactored from a complex multi-layer architecture to the current template-based system:
 
-```yaml
-backend:
-  logger:
-    kubernetesIngestor: debug
-```
+**Removed:**
+- `core/` - IngestionEngine, ResourceValidator, XRDEntityBuilder (~5,000 lines)
+- `entity-builders/` - ParametersBuilder, StepsBuilder, TemplateEntityBuilder
+- `template-handlers/` - XRDTemplateHandlerV1/V2
+- `yaml-builders/` - OpenAPIDocBuilder, StepsYamlBuilder
 
-## Future Enhancements
+**Added:**
+- `xrd-transform/` - Modular transformation system
+- `templates/` - Handlebars template files
+- Annotation-based configuration
 
-- [ ] Support for custom resource filters
-- [ ] Incremental updates instead of full sync
-- [ ] Webhook-based real-time updates
-- [ ] Enhanced error recovery mechanisms
-- [ ] Performance metrics and monitoring
+**Benefits:**
+- ~5,600 fewer lines of code
+- Easier to understand and maintain
+- Template customization without code changes
+- Clear separation of concerns
+
+## See Also
+
+- [Configuration Reference](./configuration.md)
+- [XRD Transform Examples](./xrd-transform-examples.md)
+- [Quick Start Guide](./quick-start.md)
+- [CLI Tools Documentation](./cli-ingestor.md)

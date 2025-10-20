@@ -1,0 +1,17 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: MyResource.With.Dots.example.com
+spec:
+  scope: Cluster
+  group: example.com
+  names:
+    kind: MyResource
+    plural: myresources
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object

@@ -1,0 +1,6 @@
+- id: gitops-generate
+  action: test:generate
+- id: gitops-pr
+  action: test:pr
+  input:
+    repo: {{config.gitops.repo}}
