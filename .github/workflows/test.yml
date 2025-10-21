@@ -4,6 +4,14 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.prettierrc'
+      - '.editorconfig'
 
 jobs:
   # Main test job - runs comprehensive tests including regression tests
