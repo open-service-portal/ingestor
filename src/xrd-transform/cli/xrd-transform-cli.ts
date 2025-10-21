@@ -239,7 +239,7 @@ async function copyDirectory(source: string, destination: string): Promise<void>
 program
   .name('xrd-transform')
   .description('Transform XRDs into Backstage templates using Handlebars templates')
-  .version('1.0.0');
+  .version(require('../../../package.json').version);
 
 // Init command - copy default templates to project
 program

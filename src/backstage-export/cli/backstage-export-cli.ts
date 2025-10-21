@@ -192,7 +192,7 @@ async function main() {
   program
     .name('backstage-export')
     .description('Export entities from Backstage catalog')
-    .version('1.0.0')
+    .version(require('../../../package.json').version)
     .option('-u, --url <url>', 'Backstage URL', 'http://localhost:7007')
     .option('-t, --token <token>', 'API token for authentication', process.env.BACKSTAGE_TOKEN)
     .option('-k, --kind <kinds>', 'Entity kinds (comma-separated)', '')

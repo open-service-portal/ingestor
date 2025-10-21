@@ -35,6 +35,14 @@ jobs:
       - name: Compile TypeScript
         run: yarn tsc
 
+      - name: Update package version from tag
+        run: |
+          # Extract version from tag (v1.0.1 -> 1.0.1)
+          VERSION=${{ github.event.release.tag_name || inputs.tag }}
+          VERSION=${VERSION#v}
+          echo "Setting version to $VERSION"
+          npm version $VERSION --no-git-tag-version
+
       - name: Publish to npm
         run: npm publish --access public --provenance
  
