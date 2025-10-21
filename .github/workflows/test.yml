@@ -1,0 +1,74 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint code
+        run: yarn lint
+
+      - name: Compile TypeScript
+        run: yarn tsc
+
+      - name: Build package
+        run: yarn build
+
+      - name: Run unit tests
+        run: yarn test
+
+      - name: Run transform regression tests
+        run: ./run-tests.sh
+
+      - name: Verify package contents
+        run: |
+          npm pack --dry-run
+          echo "✅ Package verification complete"
+
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['20', '22']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Compile TypeScript
+        run: yarn tsc
+
+      - name: Build package
+        run: yarn build
+
+      - name: Run tests
+        run: yarn test
