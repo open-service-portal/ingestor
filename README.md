@@ -140,6 +140,33 @@ The ingestor automatically extracts and generates navigation links from Kubernet
 - Configuration and customization
 - Examples and best practices
 
+### Template Customization
+
+The ingestor uses Handlebars templates to transform Crossplane XRDs into Backstage templates. You can customize these templates to match your organization's needs without forking the plugin.
+
+**[→ Full Template Customization Guide](./docs/template-customization.md)**
+
+- Initialize custom templates with `npx ingestor init`
+- Configure template directory in `app-config.yaml`
+- Customize templates for your organization
+- Version control your customizations
+- Safe npm package upgrades (don't overwrite customizations)
+
+Quick start:
+```bash
+# Initialize custom templates
+npx @open-service-portal/backstage-plugin-ingestor init
+
+# Configure in app-config/ingestor.yaml
+ingestor:
+  crossplane:
+    xrds:
+      templateDir: './ingestor-templates'
+
+# Customize templates
+vim ingestor-templates/backstage/default.hbs
+```
+
 ## CLI Tools
 
 The plugin includes several command-line tools that use the same ingestion engine as the runtime plugin:
@@ -159,6 +186,32 @@ The CLI tools use a dual-layer architecture:
    - Delegate to bin scripts for execution
 
 This architecture provides both npm installability and local development convenience.
+
+### Template Initialization (Init Command)
+
+Initialize custom templates for customization:
+
+```bash
+# Initialize templates in default location (./ingestor-templates)
+npx @open-service-portal/backstage-plugin-ingestor init
+
+# Or if using in Backstage app with yarn scripts
+yarn ingestor:init
+
+# With custom output directory
+npx @open-service-portal/backstage-plugin-ingestor init --output my-templates
+
+# Force overwrite existing templates
+npx @open-service-portal/backstage-plugin-ingestor init --force
+```
+
+The init command:
+- Copies all default templates from the npm package
+- Creates complete directory structure (backstage/, parameters/, steps/, etc.)
+- Provides next-step instructions for configuration
+- Protects existing templates (requires --force to overwrite)
+
+**[→ Full Template Customization Guide](./docs/template-customization.md)**
 
 ### XRD Transform Script (Template Ingestion)
 
