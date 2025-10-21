@@ -33,17 +33,8 @@ jobs:
       # - name: Lint code
       #   run: yarn lint
 
-      - name: Compile TypeScript
-        run: yarn tsc
-
-      - name: Build package
-        run: yarn build
-
-      - name: Run unit tests
-        run: yarn test
-
-      - name: Run transform regression tests
-        run: ./run-tests.sh
+      - name: Run all tests (compile, build, unit, regression)
+        run: yarn test:ci
 
       - name: Verify package contents
         run: |
@@ -72,11 +63,5 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Compile TypeScript
-        run: yarn tsc
-
-      - name: Build package
-        run: yarn build
-
-      - name: Run tests
-        run: yarn test
+      - name: Run all tests
+        run: yarn test:ci

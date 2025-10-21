@@ -310,20 +310,32 @@ yarn cli:ingestor examples/xrd.yaml --preview
 yarn cli:export --list --kind Template
 ```
 
-### Testing XRD Transforms
+### Testing
 
-The plugin includes a comprehensive regression test suite for XRD transformation:
+The plugin includes comprehensive test coverage with yarn scripts matching CI:
 
 ```bash
-# Run from plugin root directory
-./run-tests.sh
+# Run unit tests only
+yarn test
 
-# Or from test directory
-cd tests/xrd-transform
-../../run-tests.sh
+# Run XRD transform regression tests only
+yarn test:regression
+
+# Run both unit and regression tests
+yarn test:all
+
+# Run complete CI test suite (compile, build, test, regression)
+yarn test:ci
 ```
 
+**What each command does:**
+- `yarn test` - Jest unit tests via @backstage/cli
+- `yarn test:regression` - XRD transform regression tests (`./run-tests.sh`)
+- `yarn test:all` - Runs both test + test:regression
+- `yarn test:ci` - Full CI pipeline: tsc → build → test → test:regression
+
 **Test Coverage:**
+- ✅ Unit tests for all core modules
 - ✅ Namespaced and cluster-scoped resources
 - ✅ Parameter annotations and GitOps workflows
 - ✅ Complex property types (arrays, objects, booleans)
