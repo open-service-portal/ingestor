@@ -39,4 +39,6 @@ jobs:
       - name: Publish to npm
         run: npm publish --access public --provenance
         env:
+          # NPM_TOKEN is only needed if NOT using trusted publishing (OIDC)
+          # Once trusted publishing is configured on npmjs.com, this can be removed
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

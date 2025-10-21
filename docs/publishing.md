@@ -16,9 +16,43 @@ npm login
 npm whoami
 ```
 
-### 2. GitHub Repository Setup
+### 2. GitHub Repository Setup (Choose One Method)
 
-The package repository needs an `NPM_TOKEN` secret configured:
+#### Option A: Trusted Publishing with OIDC (Recommended)
+
+**Benefits:**
+- No long-lived tokens to manage
+- Automatic provenance attestations
+- More secure (no token exposure risk)
+- Available since npm CLI 11.5.1
+
+**Setup:**
+
+1. **Configure on npmjs.com:**
+   - Go to https://www.npmjs.com/package/@open-service-portal/backstage-plugin-ingestor/access
+   - Navigate to "Publishing access" → "Trusted publishers"
+   - Click "Add trusted publisher"
+   - Configure:
+     - **Provider**: GitHub Actions
+     - **Organization**: `open-service-portal`
+     - **Repository**: `ingestor`
+     - **Workflow**: `.github/workflows/publish.yml`
+     - **Environment**: (leave blank)
+
+2. **Verify workflow permissions:**
+   - The workflow already has `id-token: write` permission ✅
+   - No additional GitHub secrets needed ✅
+
+3. **That's it!** The workflow will authenticate using OIDC when publishing.
+
+#### Option B: Token-Based Publishing (Legacy)
+
+**Use this if:**
+- You prefer traditional token-based auth
+- Need to support older npm CLI versions
+- Want a backup authentication method
+
+**Setup:**
 
 1. Generate an npm access token:
    - Go to https://www.npmjs.com/settings/[username]/tokens
