@@ -1,0 +1,13 @@
+# Test configuration for XRD transform tests
+# This file provides minimal configuration needed for tests to pass
+# without requiring a full Backstage environment
+
+ingestor:
+  crossplane:
+    xrds:
+      gitops:
+        owner: 'open-service-portal'
+        repo: 'catalog-orders'
+        targetBranch: 'main'
+      # Override cluster name for tests
+      targetCluster: 'rancher-desktop'

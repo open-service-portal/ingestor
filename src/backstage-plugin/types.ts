@@ -85,6 +85,9 @@ export interface KubernetesResourceFetcherOptions {
   kind?: string;
   namespace?: string;
   resourcePath?: string; // Alternative to apiVersion/kind for custom paths
+  query?: {
+    labelSelector?: string;
+  };
 }
 
 /**

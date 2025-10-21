@@ -1,0 +1,51 @@
+# Source files (we publish dist/)
+src/
+tsconfig*.json
+
+# Tests
+tests/
+*.test.ts
+*.spec.ts
+run-tests.sh
+run-*-tests.sh
+
+# Scripts (shell wrappers not needed in published package)
+scripts/
+
+# Development files
+.git/
+.gitignore
+.eslintrc.js
+node_modules/
+
+# Documentation (keep README, remove detailed docs)
+docs/
+CLAUDE.md
+K8S_RBAC.md
+CHANGELOG.md
+
+# Template test fixtures
+templates/README.md
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+
+# Build artifacts
+*.tsbuildinfo
+
+# Example configs
+*.example*
+ingestor.yaml.example-config

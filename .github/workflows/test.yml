@@ -1,0 +1,67 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  # Main test job - runs comprehensive tests including regression tests
+  # This job verifies TypeScript compilation, build process, unit tests,
+  # transform regression tests, and package contents
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          # Note: cache disabled because this package uses parent monorepo's yarn.lock
+
+      - name: Install dependencies
+        run: yarn install
+
+      # Lint step temporarily disabled - existing code has lint issues
+      # TODO: Fix lint issues in separate PR
+      # - name: Lint code
+      #   run: yarn lint
+
+      - name: Run all tests (compile, build, unit, regression)
+        run: yarn test:ci
+
+      - name: Verify package contents
+        run: |
+          npm pack --dry-run
+          echo "✅ Package verification complete"
+
+  # Matrix test job - ensures compatibility across Node.js versions
+  # Tests the package build and unit tests on Node.js 20 and 22
+  # This ensures the package works correctly on different Node.js LTS versions
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['20', '22']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          # Note: cache disabled because this package uses parent monorepo's yarn.lock
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Run all tests
+        run: yarn test:ci

@@ -1,8 +1,8 @@
 {
   "name": "@open-service-portal/backstage-plugin-ingestor",
   "version": "1.0.0",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.cjs.js",
+  "types": "dist/index.d.ts",
   "license": "Apache-2.0",
   "publishConfig": {
     "access": "public",
@@ -19,7 +19,10 @@
     "pluginId": "backstage-plugin-ingestor",
     "pluginPackages": [
       "@open-service-portal/backstage-plugin-ingestor"
-    ]
+    ],
+    "features": {
+      ".": "@backstage/BackendFeature"
+    }
   },
   "bin": {
     "backstage-export": "./bin/backstage-export",
@@ -30,7 +33,10 @@
     "build": "backstage-cli package build",
     "build:cli": "tsc --project tsconfig.cli.json",
     "lint": "backstage-cli package lint",
-    "test": "backstage-cli package test",
+    "test": "backstage-cli package test --watchAll=false",
+    "test:regression": "./run-tests.sh",
+    "test:all": "yarn test && yarn test:regression",
+    "test:ci": "yarn tsc && yarn build && yarn test && yarn test:regression",
     "clean": "backstage-cli package clean",
     "prepack": "backstage-cli package prepack",
     "postpack": "backstage-cli package postpack",
@@ -80,6 +86,14 @@
   },
   "files": [
     "dist",
-    "bin"
-  ]
+    "bin",
+    "templates"
+  ],
+  "typesVersions": {
+    "*": {
+      "package.json": [
+        "package.json"
+      ]
+    }
+  }
 }

@@ -61,10 +61,11 @@ kubernetesIngestor:
       enabled: true
       # GitOps configuration for template generation
       gitops:
-        ordersRepo:
-          owner: 'your-org'
-          repo: 'catalog-orders'
-          targetBranch: 'main'
+        owner: 'your-org'
+        repo: 'catalog-orders'
+        targetBranch: 'main'
+      # Optional: Override cluster name (defaults to kubectl context)
+      targetCluster: 'my-cluster'
 ```
 
 **[→ Full Configuration Reference](./docs/configuration.md)**
@@ -140,6 +141,33 @@ The ingestor automatically extracts and generates navigation links from Kubernet
 - Configuration and customization
 - Examples and best practices
 
+### Template Customization
+
+The ingestor uses Handlebars templates to transform Crossplane XRDs into Backstage templates. You can customize these templates to match your organization's needs without forking the plugin.
+
+**[→ Full Template Customization Guide](./docs/template-customization.md)**
+
+- Initialize custom templates with `npx ingestor init`
+- Configure template directory in `app-config.yaml`
+- Customize templates for your organization
+- Version control your customizations
+- Safe npm package upgrades (don't overwrite customizations)
+
+Quick start:
+```bash
+# Initialize custom templates
+npx @open-service-portal/backstage-plugin-ingestor init
+
+# Configure in app-config/ingestor.yaml
+ingestor:
+  crossplane:
+    xrds:
+      templateDir: './ingestor-templates'
+
+# Customize templates
+vim ingestor-templates/backstage/default.hbs
+```
+
 ## CLI Tools
 
 The plugin includes several command-line tools that use the same ingestion engine as the runtime plugin:
@@ -160,6 +188,32 @@ The CLI tools use a dual-layer architecture:
 
 This architecture provides both npm installability and local development convenience.
 
+### Template Initialization (Init Command)
+
+Initialize custom templates for customization:
+
+```bash
+# Initialize templates in default location (./ingestor-templates)
+npx @open-service-portal/backstage-plugin-ingestor init
+
+# Or if using in Backstage app with yarn scripts
+yarn ingestor:init
+
+# With custom output directory
+npx @open-service-portal/backstage-plugin-ingestor init --output my-templates
+
+# Force overwrite existing templates
+npx @open-service-portal/backstage-plugin-ingestor init --force
+```
+
+The init command:
+- Copies all default templates from the npm package
+- Creates complete directory structure (backstage/, parameters/, steps/, etc.)
+- Provides next-step instructions for configuration
+- Protects existing templates (requires --force to overwrite)
+
+**[→ Full Template Customization Guide](./docs/template-customization.md)**
+
 ### XRD Transform Script (Template Ingestion)
 
 Transform XRDs into Backstage templates:
@@ -176,8 +230,12 @@ Transform XRDs into Backstage templates:
 ./scripts/xrd-transform.sh -o output/ path/to/xrd.yaml
 ./scripts/xrd-transform.sh -v path/to/xrd.yaml
 
+# With custom config file (useful for tests)
+./scripts/xrd-transform.sh --config tests/app-config.test.yaml path/to/xrd.yaml
+
 # Direct bin usage (if installed via npm)
 npx ingestor path/to/xrd.yaml
+npx ingestor --config app-config.yaml path/to/xrd.yaml
 ```
 
 **[→ Full XRD Transform Documentation](./docs/xrd-transform-examples.md)**
@@ -257,20 +315,32 @@ yarn cli:ingestor examples/xrd.yaml --preview
 yarn cli:export --list --kind Template
 ```
 
-### Testing XRD Transforms
+### Testing
 
-The plugin includes a comprehensive regression test suite for XRD transformation:
+The plugin includes comprehensive test coverage with yarn scripts matching CI:
 
 ```bash
-# Run from plugin root directory
-./run-tests.sh
+# Run unit tests only
+yarn test
 
-# Or from test directory
-cd tests/xrd-transform
-../../run-tests.sh
+# Run XRD transform regression tests only
+yarn test:regression
+
+# Run both unit and regression tests
+yarn test:all
+
+# Run complete CI test suite (compile, build, test, regression)
+yarn test:ci
 ```
 
+**What each command does:**
+- `yarn test` - Jest unit tests via @backstage/cli
+- `yarn test:regression` - XRD transform regression tests (`./run-tests.sh`)
+- `yarn test:all` - Runs both test + test:regression
+- `yarn test:ci` - Full CI pipeline: tsc → build → test → test:regression
+
 **Test Coverage:**
+- ✅ Unit tests for all core modules
 - ✅ Namespaced and cluster-scoped resources
 - ✅ Parameter annotations and GitOps workflows
 - ✅ Complex property types (arrays, objects, booleans)
