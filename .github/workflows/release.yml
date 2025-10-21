@@ -10,7 +10,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  create-release-pr:
+  release:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,25 +29,28 @@ jobs:
           echo "📦 Release version: $VERSION"
 
       - name: Create release branch
+        id: branch
         run: |
           BRANCH_NAME="release/${{ steps.version.outputs.tag }}"
           git checkout -b "$BRANCH_NAME"
-          echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
-        id: branch
+          echo "name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "✅ Created branch: $BRANCH_NAME"
 
-      - name: Prepare release
+      - name: Update version and changelog
         run: |
           ./.github/scripts/prepare-release.sh "${{ steps.version.outputs.version }}"
 
-      - name: Commit changes
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json CHANGELOG.md
           git commit -m "chore: release ${{ steps.version.outputs.tag }}"
-          git push origin "${{ steps.branch.outputs.branch }}"
+          git push origin "${{ steps.branch.outputs.name }}"
+          echo "✅ Pushed release branch"
 
       - name: Create Pull Request
+        id: create_pr
         uses: actions/github-script@v7
         with:
           script: |
@@ -58,7 +61,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `chore: release ${tag}`,
-              head: '${{ steps.branch.outputs.branch }}',
+              head: '${{ steps.branch.outputs.name }}',
               base: 'main',
               body: `## Release ${tag}
 
@@ -66,41 +69,96 @@ jobs:
 
 This PR was automatically created by the release workflow.
 
-**After merging:**
-1. GitHub release will be created with tag ${tag}
+**What's included:**
+- ✅ Version updated in package.json (${version})
+- ✅ CHANGELOG.md updated with release date
+
+**After merging this PR:**
+1. GitHub release will be created automatically (see workflow)
 2. npm publish workflow will trigger
 3. Package version ${version} will be published to npm
 
-### ✅ Checklist
-- [x] Version updated in package.json
-- [x] CHANGELOG.md updated
-- [ ] Tests passing
-- [ ] Ready to publish
+**To complete release:**
+1. Review changes in this PR
+2. Ensure tests pass
+3. Merge this PR
+4. Release and publish happen automatically!
 
 ---
-**Note:** Add the \`ready-for-changelog\` label if you want to update the changelog for this release PR.`
+
+⚠️ **Note:** Do NOT delete the tag \`${tag}\`. The GitHub release workflow depends on it.`
             });
 
-            console.log(\`✅ Created PR #\${pr.number}: \${pr.html_url}\`);
+            core.setOutput('number', pr.number);
+            core.setOutput('url', pr.html_url);
+            console.log(`✅ Created PR #${pr.number}: ${pr.html_url}`);
+            return pr.number;
+
+      - name: Wait for PR to be merged
+        id: wait_merge
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.create_pr.outputs.result }};
+            const maxAttempts = 120; // 10 minutes (5 sec intervals)
+            let attempts = 0;
+
+            console.log(`⏳ Waiting for PR #${prNumber} to be merged...`);
+            console.log('This workflow will wait up to 10 minutes.');
+            console.log('You can merge the PR manually or let it auto-merge if configured.');
+
+            while (attempts < maxAttempts) {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+
+              if (pr.merged) {
+                console.log(`✅ PR #${prNumber} was merged!`);
+                core.setOutput('merged', 'true');
+                return true;
+              }
+
+              if (pr.state === 'closed' && !pr.merged) {
+                core.setFailed(`❌ PR #${prNumber} was closed without merging`);
+                return false;
+              }
+
+              attempts++;
+              if (attempts % 12 === 0) {
+                console.log(`⏳ Still waiting... (${attempts * 5 / 60} minutes elapsed)`);
+              }
+              await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+
+            console.log(`⏱️ Timeout waiting for PR merge`);
+            console.log(`The GitHub release will NOT be created automatically.`);
+            console.log(`Please merge PR #${prNumber} and create the release manually.`);
+            core.setOutput('merged', 'false');
+            return false;
 
       - name: Create GitHub Release
+        if: steps.wait_merge.outputs.merged == 'true'
         uses: actions/github-script@v7
         with:
           script: |
             const tag = '${{ steps.version.outputs.tag }}';
+            const fs = require('fs');
 
             // Extract changelog for this version
-            const fs = require('fs');
             let releaseNotes = 'See CHANGELOG.md for details.';
 
             try {
               const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
-              const versionMatch = changelog.match(new RegExp(\`## v\${tag.replace('v', '')}[\\s\\S]*?(?=## |$)\`));
-              if (versionMatch) {
-                releaseNotes = versionMatch[0];
+              const versionPattern = new RegExp(`## v${tag.replace('v', '')}[\\s\\S]*?(?=## |$)`);
+              const match = changelog.match(versionPattern);
+
+              if (match) {
+                releaseNotes = match[0];
               }
             } catch (error) {
-              console.log('Could not extract changelog:', error.message);
+              console.log('⚠️  Could not extract changelog:', error.message);
             }
 
             const { data: release } = await github.rest.repos.createRelease({
@@ -113,4 +171,5 @@ This PR was automatically created by the release workflow.
               prerelease: false
             });
 
-            console.log(\`✅ Created release: \${release.html_url}\`);
+            console.log(`✅ Created GitHub release: ${release.html_url}`);
+            console.log(`📦 npm publish workflow will trigger automatically`);
