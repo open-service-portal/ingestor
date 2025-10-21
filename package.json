@@ -78,7 +78,7 @@
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.0",
-    "@semantic-release/npm": "^13.1.1",
+    "@semantic-release/npm": "^12.0.0",
     "@types/express": "*",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.0.0",
