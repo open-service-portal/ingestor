@@ -62,7 +62,7 @@ OUTPUT_DIR=""
 for arg in "$@"; do
     # Check if previous argument was an option that takes a path
     if [[ "$PREV_ARG" == "-o" ]] || [[ "$PREV_ARG" == "--output" ]] || \
-       [[ "$PREV_ARG" == "--template-path" ]]; then
+       [[ "$PREV_ARG" == "--template-path" ]] || [[ "$PREV_ARG" == "-c" ]] || [[ "$PREV_ARG" == "--config" ]]; then
         # This is a path argument, make it absolute if relative
         if [[ ! "$arg" =~ ^/ ]]; then
             ARGS+=("${USER_CWD}/${arg}")

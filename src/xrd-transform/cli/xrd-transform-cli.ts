@@ -54,7 +54,21 @@ function getCurrentKubectlContext(): string | undefined {
  *
  * If app-config/ingestor.yaml exists, don't load app-config.yaml
  */
-function loadIngestorConfig(): any {
+function loadIngestorConfig(configPath?: string): any {
+  // If explicit config path provided, use it
+  if (configPath) {
+    if (fs.existsSync(configPath)) {
+      try {
+        const configContent = fs.readFileSync(configPath, 'utf-8');
+        return yaml.load(configContent);
+      } catch (error) {
+        log(`Warning: Failed to load config from ${configPath}: ${error}`, 'yellow');
+      }
+    } else {
+      log(`Warning: Config file not found: ${configPath}`, 'yellow');
+    }
+  }
+
   // Possible base directories to search
   const baseDirs = [
     process.cwd(),                                    // Current working directory (app-portal root)
@@ -272,6 +286,7 @@ program
   .command('transform', { isDefault: true })
   .description('Transform XRDs into Backstage templates')
   .argument('[input]', 'Input file or directory (or stdin if not provided)')
+  .option('-c, --config <path>', 'Config file path (e.g., tests/app-config.test.yaml)')
   .option('-t, --template <name>', 'Template name to use (overrides XRD annotation, e.g., "debug", "default")')
   .option('--template-path <dir>', 'Template directory path (overrides config)')
   .option('-o, --output <dir>', 'Output directory (default: stdout)')
@@ -285,7 +300,7 @@ program
   .action(async (input, options) => {
     try {
       // Load configuration for template directory and gitops settings
-      const config = loadIngestorConfig();
+      const config = loadIngestorConfig(options.config);
       const configTemplateDir = config?.ingestor?.crossplane?.xrds?.templateDir;
 
       // Priority: CLI flag > config > built-in default
@@ -302,7 +317,7 @@ program
       }
 
       // Read input
-      const xrdData = await readInput(input, options);
+      const xrdData = await readInput(input, options, config);
 
       if (!xrdData || xrdData.length === 0) {
         log('No XRD data found', 'yellow');
@@ -488,11 +503,11 @@ function discoverXRDs(dirPath: string): string[] {
 /**
  * Read input from file, directory, or stdin
  */
-async function readInput(input: string | undefined, options: any): Promise<XRDExtractData[]> {
+async function readInput(input: string | undefined, options: any, config?: any): Promise<XRDExtractData[]> {
   const results: XRDExtractData[] = [];
 
-  // Get current kubectl context for metadata
-  const currentCluster = getCurrentKubectlContext();
+  // Get current kubectl context for metadata (or use config override)
+  const currentCluster = config?.ingestor?.crossplane?.xrds?.targetCluster || getCurrentKubectlContext();
 
   if (!input || input === '-') {
     // Read from stdin

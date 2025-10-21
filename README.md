@@ -61,10 +61,11 @@ kubernetesIngestor:
       enabled: true
       # GitOps configuration for template generation
       gitops:
-        ordersRepo:
-          owner: 'your-org'
-          repo: 'catalog-orders'
-          targetBranch: 'main'
+        owner: 'your-org'
+        repo: 'catalog-orders'
+        targetBranch: 'main'
+      # Optional: Override cluster name (defaults to kubectl context)
+      targetCluster: 'my-cluster'
 ```
 
 **[→ Full Configuration Reference](./docs/configuration.md)**
@@ -229,8 +230,12 @@ Transform XRDs into Backstage templates:
 ./scripts/xrd-transform.sh -o output/ path/to/xrd.yaml
 ./scripts/xrd-transform.sh -v path/to/xrd.yaml
 
+# With custom config file (useful for tests)
+./scripts/xrd-transform.sh --config tests/app-config.test.yaml path/to/xrd.yaml
+
 # Direct bin usage (if installed via npm)
 npx ingestor path/to/xrd.yaml
+npx ingestor --config app-config.yaml path/to/xrd.yaml
 ```
 
 **[→ Full XRD Transform Documentation](./docs/xrd-transform-examples.md)**

@@ -33,7 +33,7 @@
     "build": "backstage-cli package build",
     "build:cli": "tsc --project tsconfig.cli.json",
     "lint": "backstage-cli package lint",
-    "test": "backstage-cli package test",
+    "test": "backstage-cli package test --watchAll=false",
     "test:regression": "./run-tests.sh",
     "test:all": "yarn test && yarn test:regression",
     "test:ci": "yarn tsc && yarn build && yarn test && yarn test:regression",

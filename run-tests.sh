@@ -9,6 +9,7 @@ TEST_DIR="${SCRIPT_DIR}/tests"
 OUTPUT_DIR="${TEST_DIR}/output"
 TRANSFORM_SCRIPT="${SCRIPT_DIR}/scripts/xrd-transform.sh"
 TEST_TEMPLATES="${TEST_DIR}/templates"
+TEST_CONFIG="${TEST_DIR}/app-config.test.yaml"
 
 # Colors
 RED='\033[0;31m'
@@ -63,7 +64,7 @@ for scenario_dir in "${TEST_DIR}"/*/ ; do
 
     # Transform
     output_file="${OUTPUT_DIR}/${scenario_name}-${test_case}.yaml"
-    if ! "${TRANSFORM_SCRIPT}" --template-path "${template_dir}" "${test_file}" > "${output_file}" 2>&1; then
+    if ! "${TRANSFORM_SCRIPT}" --config "${TEST_CONFIG}" --template-path "${template_dir}" "${test_file}" > "${output_file}" 2>&1; then
       echo -e "    ${RED}✗ Transform failed${NC}"
       cat "${output_file}" | head -10
       FAILED=$((FAILED + 1))
