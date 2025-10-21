@@ -22,6 +22,7 @@ Originally forked from [@terasky/backstage-plugin-kubernetes-ingestor](https://g
 - **Unified Architecture**: Same ingestion engine used by both CLI and runtime
 - **XR Status Links**: Automatic extraction and generation of links from Kubernetes resource status fields
 - **Test Infrastructure**: Flattened scenario-based testing with 3+ passing tests
+- **Automated Releases**: Tag-triggered releases with automatic changelog generation from conventional commits
 
 ## Installation
 
