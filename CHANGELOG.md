@@ -4,6 +4,8 @@ All notable changes to the Backstage Ingestor Plugin will be documented in this 
 
 ## Unreleased
 
+## v1.2.0 (2025-10-21)
+
 ### CI/CD
 - Add automated changelog generation on PR merge
 - Add tag-triggered release workflow
