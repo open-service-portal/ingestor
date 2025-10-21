@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           # Note: cache disabled because this package uses parent monorepo's yarn.lock
 
       - name: Install dependencies
