@@ -12,6 +12,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Only run on tag pushes
+    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout code
