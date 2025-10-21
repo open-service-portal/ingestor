@@ -2,7 +2,13 @@
 
 All notable changes to the Backstage Ingestor Plugin will be documented in this file.
 
-## [Unreleased]
+## Unreleased
+
+### CI/CD
+- Add automated changelog generation on PR merge
+- Add tag-triggered release workflow
+- Add PR title validation for conventional commits
+- Changelog now updates automatically when PR tests pass
 
 ### Fixed
 - **Removed broken catalog:register step from default template** - The step was failing because `kube:apply` doesn't output `repoContentsUrl`. Resources are now automatically discovered by the Kubernetes ingestor instead.

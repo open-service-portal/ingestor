@@ -1,0 +1,258 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-release-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changelog
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Release version: $VERSION"
+
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${{ steps.version.outputs.tag }}$" | head -n1)
+          echo "previous=$PREV_TAG" >> $GITHUB_OUTPUT
+          echo "📋 Previous tag: $PREV_TAG"
+
+      - name: Create release branch
+        run: |
+          BRANCH_NAME="release/${{ steps.version.outputs.tag }}"
+          git checkout -b $BRANCH_NAME
+          echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        id: branch
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+          echo "✅ Updated package.json to version ${{ steps.version.outputs.version }}"
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          DATE=$(date +%Y-%m-%d)
+
+          if [ ! -f CHANGELOG.md ]; then
+            echo "⚠️  CHANGELOG.md not found, creating basic version"
+            cat > CHANGELOG.md <<EOF
+# Changelog
+
+## $TAG ($DATE)
+
+Initial release.
+EOF
+          else
+            # Replace "## Unreleased" with "## $TAG ($DATE)"
+            sed -i "s/^## Unreleased/## $TAG ($DATE)/" CHANGELOG.md
+
+            # Add new Unreleased section at the top (after main heading)
+            sed -i '0,/^## /s/^## /## Unreleased\n\n## /' CHANGELOG.md
+
+            echo "✅ Updated CHANGELOG.md with release $TAG"
+          fi
+
+          cat CHANGELOG.md
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add package.json CHANGELOG.md
+          git commit -m "chore: release ${{ steps.version.outputs.tag }}"
+
+      - name: Push release branch
+        run: |
+          git push origin ${{ steps.branch.outputs.branch }}
+
+      - name: Create Pull Request
+        id: create_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = '${{ steps.version.outputs.tag }}';
+            const prevTag = '${{ steps.prev_tag.outputs.previous }}';
+
+            // Generate changelog from git commits
+            const { data: comparison } = await github.rest.repos.compareCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: prevTag || 'HEAD~10',
+              head: 'main'
+            });
+
+            const commits = comparison.commits
+              .map(commit => `- ${commit.commit.message.split('\n')[0]} (${commit.sha.substring(0, 7)})`)
+              .join('\n');
+
+            const body = `## Release ${tag}
+
+### Changes
+
+${commits}
+
+### Release Checklist
+
+- [x] Version updated in package.json
+- [x] CHANGELOG.md updated
+- [ ] Tests passing
+- [ ] Ready to publish to npm
+
+---
+
+This PR was automatically created by the release workflow.
+Merging this PR will:
+1. Create a GitHub release with tag ${tag}
+2. Trigger the npm publish workflow
+3. Publish version ${version} to npm registry
+
+**Note**: This PR will auto-merge when all required status checks pass.`;
+
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `chore: release ${tag}`,
+              head: '${{ steps.branch.outputs.branch }}',
+              base: 'main',
+              body: body
+            });
+
+            console.log(`✅ Created PR #${pr.number}: ${pr.html_url}`);
+            core.setOutput('pr_number', pr.number);
+            core.setOutput('pr_url', pr.html_url);
+
+            return pr.number;
+
+      - name: Enable auto-merge
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.create_pr.outputs.result }};
+
+            try {
+              await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                merge_method: 'squash'
+              }).catch(async (error) => {
+                if (error.status === 405) {
+                  // PR not mergeable yet, enable auto-merge
+                  await github.graphql(`
+                    mutation($pullRequestId: ID!) {
+                      enablePullRequestAutoMerge(input: {
+                        pullRequestId: $pullRequestId,
+                        mergeMethod: SQUASH
+                      }) {
+                        pullRequest {
+                          autoMergeRequest {
+                            enabledAt
+                          }
+                        }
+                      }
+                    }
+                  `, {
+                    pullRequestId: (await github.rest.pulls.get({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: prNumber
+                    })).data.node_id
+                  });
+                  console.log('✅ Auto-merge enabled - will merge when checks pass');
+                } else {
+                  throw error;
+                }
+              });
+            } catch (error) {
+              console.log('Note: Could not enable auto-merge, may need manual merge');
+              console.log(error.message);
+            }
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = '${{ steps.version.outputs.tag }}';
+            const prevTag = '${{ steps.prev_tag.outputs.previous }}';
+
+            // Wait for PR to be merged
+            const prNumber = ${{ steps.create_pr.outputs.result }};
+            const maxAttempts = 60; // 5 minutes
+            let attempts = 0;
+            let merged = false;
+
+            while (attempts < maxAttempts && !merged) {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+
+              if (pr.merged) {
+                merged = true;
+                console.log('✅ PR merged successfully');
+                break;
+              }
+
+              if (pr.state === 'closed') {
+                core.setFailed('PR was closed without merging');
+                return;
+              }
+
+              attempts++;
+              await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+            }
+
+            if (!merged) {
+              console.log('⏳ PR not yet merged, release will be created when publish workflow runs');
+              return;
+            }
+
+            // Generate release notes from CHANGELOG
+            const fs = require('fs');
+            let releaseNotes = 'See CHANGELOG.md for details.';
+
+            try {
+              const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+              const versionSection = changelog.match(new RegExp(`## ${tag}[\\s\\S]*?(?=## |$)`));
+              if (versionSection) {
+                releaseNotes = versionSection[0];
+              }
+            } catch (error) {
+              console.log('Could not read CHANGELOG.md');
+            }
+
+            // Create GitHub release
+            const { data: release } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: tag,
+              body: releaseNotes,
+              draft: false,
+              prerelease: false
+            });
+
+            console.log(`✅ Created release: ${release.html_url}`);
