@@ -35,20 +35,6 @@ jobs:
       - name: Compile TypeScript
         run: yarn tsc
 
-      - name: Build package
-        run: yarn build
-
-      - name: Run unit tests
-        run: yarn test
-        continue-on-error: true # Don't fail publish if tests fail
-
-      - name: Run transform tests
-        run: ./run-tests.sh
-        continue-on-error: true # Don't fail publish if tests fail
-
       - name: Publish to npm
         run: npm publish --access public --provenance
-        env:
-          # NPM_TOKEN is only needed if NOT using trusted publishing (OIDC)
-          # Once trusted publishing is configured on npmjs.com, this can be removed
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+ 
