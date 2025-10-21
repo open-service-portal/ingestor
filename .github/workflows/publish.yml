@@ -40,6 +40,9 @@ jobs:
           echo "Setting version to $VERSION"
           npm version $VERSION --no-git-tag-version
 
+      - name: Generate TypeScript declarations
+        run: yarn tsc
+
       - name: Build package
         run: yarn build
 
