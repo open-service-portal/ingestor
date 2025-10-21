@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/open-service-portal/ingestor/compare/v2.0.0...v2.1.0) (2025-10-21)
+
+
+### Features
+
+* restore git and changelog plugins to commit version to package.json ([#25](https://github.com/open-service-portal/ingestor/issues/25)) ([19f3531](https://github.com/open-service-portal/ingestor/commit/19f3531edd91c8e42278e523427068148a763d3d))
+
 # Changelog
 
 All notable changes to the Backstage Ingestor Plugin will be documented in this file.
