@@ -65,30 +65,32 @@ jobs:
               title: `chore: release ${tag}`,
               head: '${{ steps.branch.outputs.name }}',
               base: 'main',
-              body: `## Release ${tag}
-
-### 📦 Version ${version}
-
-This PR was automatically created by the release workflow.
-
-**What's included:**
-- ✅ Version updated in package.json (${version})
-- ✅ CHANGELOG.md updated with release date
-
-**After merging this PR:**
-1. GitHub release will be created automatically (see workflow)
-2. npm publish workflow will trigger
-3. Package version ${version} will be published to npm
-
-**To complete release:**
-1. Review changes in this PR
-2. Ensure tests pass
-3. Merge this PR
-4. Release and publish happen automatically!
-
----
-
-⚠️ **Note:** Do NOT delete the tag \`${tag}\`. The GitHub release workflow depends on it.`
+              body: [
+                `## Release ${tag}`,
+                ``,
+                `### 📦 Version ${version}`,
+                ``,
+                `This PR was automatically created by the release workflow.`,
+                ``,
+                `**What's included:**`,
+                `- ✅ Version updated in package.json (${version})`,
+                `- ✅ CHANGELOG.md updated with release date`,
+                ``,
+                `**After merging this PR:**`,
+                `1. GitHub release will be created automatically (see workflow)`,
+                `2. npm publish workflow will trigger`,
+                `3. Package version ${version} will be published to npm`,
+                ``,
+                `**To complete release:**`,
+                `1. Review changes in this PR`,
+                `2. Ensure tests pass`,
+                `3. Merge this PR`,
+                `4. Release and publish happen automatically!`,
+                ``,
+                `---`,
+                ``,
+                `⚠️ **Note:** Do NOT delete the tag \`${tag}\`. The GitHub release workflow depends on it.`
+              ].join('\n')
             });
 
             core.setOutput('number', pr.number);
