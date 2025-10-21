@@ -31,29 +31,6 @@ Validates that a PR title follows conventional commits format.
 ./validate-pr-title.sh "FEAT: test"   # Wrong case
 ```
 
-### `update-changelog.sh`
-
-Updates CHANGELOG.md with a new PR entry under the appropriate section.
-
-**Usage:**
-```bash
-./update-changelog.sh <PR_NUMBER> <PR_TITLE>
-```
-
-**Examples:**
-```bash
-./update-changelog.sh 123 "feat: add new feature"
-./update-changelog.sh 124 "fix: resolve bug"
-./update-changelog.sh 125 "docs: update README"
-```
-
-**How it works:**
-1. Parses the PR title to determine the section (Features, Bug Fixes, etc.)
-2. Checks if PR is already in changelog (idempotent)
-3. Creates `## Unreleased` section if needed
-4. Adds section header if needed (e.g., `### Features`)
-5. Adds entry: `- <description> (#<PR_NUMBER>)`
-
 ### `prepare-release.sh`
 
 Prepares a release by updating package.json and CHANGELOG.md.
@@ -82,11 +59,6 @@ All scripts can be tested locally before pushing to CI:
 # Test PR title validation
 ./.github/scripts/validate-pr-title.sh "feat: my feature"
 
-# Test changelog update
-./.github/scripts/update-changelog.sh 999 "feat: test feature"
-git diff CHANGELOG.md
-git checkout CHANGELOG.md  # Reset after testing
-
 # Test release preparation
 ./.github/scripts/prepare-release.sh 1.2.0
 git diff package.json CHANGELOG.md
@@ -98,12 +70,53 @@ git checkout package.json CHANGELOG.md  # Reset after testing
 These scripts are used by GitHub Actions workflows:
 
 - **`.github/workflows/pr-title-lint.yml`** - Uses `validate-pr-title.sh`
-- **`.github/workflows/changelog.yml`** - Uses `update-changelog.sh`
 - **`.github/workflows/release.yml`** - Uses `prepare-release.sh`
+
+## Release Workflow
+
+### Simple, Sequential Process
+
+When you create a tag, the workflow executes these steps **in order**:
+
+1. **Extract version** from tag (e.g., `v1.2.0` → `1.2.0`)
+2. **Create release branch** (`release/v1.2.0`)
+3. **Update version** in package.json and CHANGELOG.md
+4. **Commit and push** changes
+5. **Create Pull Request** for review
+6. **Wait for PR merge** (up to 10 minutes)
+7. **Create GitHub Release** (only if PR merged)
+8. **Trigger npm publish** (automatic via existing workflow)
+
+### No Parallel Steps
+
+Everything happens sequentially, making it easy to understand and debug.
+
+### Manual CHANGELOG Updates
+
+**Developers update CHANGELOG.md manually in their PRs:**
+
+```markdown
+## Unreleased
+
+### Features
+- Add user authentication (#123)
+- Add dark mode (#124)
+
+### Bug Fixes
+- Fix login timeout (#125)
+```
+
+When ready to release, just create a tag:
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+The release workflow moves `## Unreleased` to `## v1.2.0 (date)`.
 
 ## Conventional Commits
 
-All scripts follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+PR titles should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
 
 **Format:**
 ```
@@ -127,6 +140,8 @@ All scripts follow the [Conventional Commits](https://www.conventionalcommits.or
 Add `!` after type or `BREAKING CHANGE:` in commit body → Major version bump
 
 **Examples:**
-- `feat: add user authentication` → v1.1.0
-- `fix: resolve login bug` → v1.0.1
-- `feat!: redesign API` → v2.0.0
+- `feat: add user authentication` → Suggests v1.1.0
+- `fix: resolve login bug` → Suggests v1.0.1
+- `feat!: redesign API` → Suggests v2.0.0
+
+**Note:** Version bumps are manual - you choose the version when creating the tag.
