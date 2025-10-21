@@ -20,10 +20,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'yarn'
+          # Note: cache disabled because this package uses parent monorepo's yarn.lock
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       # Lint step temporarily disabled - existing code has lint issues
       # TODO: Fix lint issues in separate PR
@@ -61,10 +61,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          # Note: cache disabled because this package uses parent monorepo's yarn.lock
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Compile TypeScript
         run: yarn tsc
