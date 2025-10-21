@@ -2,11 +2,7 @@ name: Update Changelog
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-  workflow_run:
-    workflows: ["Test"]
-    types:
-      - completed
+    types: [opened, synchronize, reopened, labeled]
 
 permissions:
   contents: write
@@ -14,158 +10,62 @@ permissions:
 
 jobs:
   update-changelog:
-    # Only run when tests pass
-    if: |
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request'
+    # Only run when PR has 'ready-for-changelog' label or tests pass
+    if: contains(github.event.pull_request.labels.*.name, 'ready-for-changelog')
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get PR number
-        id: pr
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pulls = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              head: `${context.repo.owner}:${context.payload.workflow_run.head_branch}`,
-              state: 'open'
-            });
-
-            if (pulls.data.length === 0) {
-              core.setOutput('skip', 'true');
-              return;
-            }
-
-            const pr = pulls.data[0];
-            core.setOutput('number', pr.number);
-            core.setOutput('title', pr.title);
-            core.setOutput('branch', pr.head.ref);
-            core.setOutput('skip', 'false');
-
       - name: Checkout PR branch
-        if: steps.pr.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.pr.outputs.branch }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check if changelog already updated
-        if: steps.pr.outputs.skip != 'true'
+      - name: Update CHANGELOG.md
+        run: |
+          ./.github/scripts/update-changelog.sh \
+            "${{ github.event.pull_request.number }}" \
+            "${{ github.event.pull_request.title }}"
+
+      - name: Check for changes
         id: check
         run: |
-          # Check if this PR number is already in the unreleased section
-          if [ -f CHANGELOG.md ]; then
-            if grep -q "#${{ steps.pr.outputs.number }}" CHANGELOG.md; then
-              echo "already_updated=true" >> $GITHUB_OUTPUT
-              echo "ℹ️  Changelog already includes PR #${{ steps.pr.outputs.number }}"
-            else
-              echo "already_updated=false" >> $GITHUB_OUTPUT
-            fi
+          if git diff --quiet CHANGELOG.md; then
+            echo "changed=false" >> $GITHUB_OUTPUT
           else
-            echo "already_updated=false" >> $GITHUB_OUTPUT
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
-
-      - name: Update CHANGELOG.md
-        if: steps.pr.outputs.skip != 'true' && steps.check.outputs.already_updated != 'true'
-        run: |
-          PR_TITLE="${{ steps.pr.outputs.title }}"
-          PR_NUMBER="${{ steps.pr.outputs.number }}"
-
-          # Parse conventional commit type from PR title
-          if [[ "$PR_TITLE" =~ ^feat(\(.+\))?!?:\ (.+) ]]; then
-            SECTION="### Features"
-            DESCRIPTION="${BASH_REMATCH[2]}"
-          elif [[ "$PR_TITLE" =~ ^fix(\(.+\))?!?:\ (.+) ]]; then
-            SECTION="### Bug Fixes"
-            DESCRIPTION="${BASH_REMATCH[2]}"
-          elif [[ "$PR_TITLE" =~ ^docs(\(.+\))?:\ (.+) ]]; then
-            SECTION="### Documentation"
-            DESCRIPTION="${BASH_REMATCH[2]}"
-          elif [[ "$PR_TITLE" =~ ^perf(\(.+\))?:\ (.+) ]]; then
-            SECTION="### Performance"
-            DESCRIPTION="${BASH_REMATCH[2]}"
-          elif [[ "$PR_TITLE" =~ ^refactor(\(.+\))?:\ (.+) ]]; then
-            SECTION="### Refactoring"
-            DESCRIPTION="${BASH_REMATCH[2]}"
-          elif [[ "$PR_TITLE" =~ ^test(\(.+\))?:\ (.+) ]]; then
-            SECTION="### Tests"
-            DESCRIPTION="${BASH_REMATCH[2]}"
-          elif [[ "$PR_TITLE" =~ ^build(\(.+\))?:\ (.+) ]]; then
-            SECTION="### Build System"
-            DESCRIPTION="${BASH_REMATCH[2]}"
-          elif [[ "$PR_TITLE" =~ ^ci(\(.+\))?:\ (.+) ]]; then
-            SECTION="### CI/CD"
-            DESCRIPTION="${BASH_REMATCH[2]}"
-          elif [[ "$PR_TITLE" =~ ^chore(\(.+\))?:\ (.+) ]]; then
-            SECTION="### Chores"
-            DESCRIPTION="${BASH_REMATCH[2]}"
-          else
-            SECTION="### Other Changes"
-            DESCRIPTION="$PR_TITLE"
-          fi
-
-          # Create CHANGELOG.md if it doesn't exist
-          if [ ! -f CHANGELOG.md ]; then
-            cat > CHANGELOG.md <<EOF
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## Unreleased
-
-EOF
-          fi
-
-          # Check if unreleased section exists
-          if ! grep -q "## Unreleased" CHANGELOG.md; then
-            # Add unreleased section after first heading
-            sed -i '0,/^#[^#]/a\\n## Unreleased\n' CHANGELOG.md
-          fi
-
-          # Check if section exists under Unreleased
-          if ! awk '/^## Unreleased/,/^## / {if (/^'"$SECTION"'$/) exit 0} END {exit 1}' CHANGELOG.md; then
-            # Add section after ## Unreleased
-            sed -i "/^## Unreleased/a\\n$SECTION" CHANGELOG.md
-          fi
-
-          # Add the entry under the appropriate section
-          ENTRY="- ${DESCRIPTION} (#${PR_NUMBER})"
-
-          # Find the section and add entry
-          awk -v section="$SECTION" -v entry="$ENTRY" '
-            /^'"$SECTION"'$/ {
-              print;
-              getline;
-              print entry;
-              print;
-              next;
-            }
-            {print}
-          ' CHANGELOG.md > CHANGELOG.md.tmp
-
-          mv CHANGELOG.md.tmp CHANGELOG.md
-
-          echo "✅ Added to CHANGELOG.md under $SECTION"
-          cat CHANGELOG.md
 
       - name: Commit changelog update
-        if: steps.pr.outputs.skip != 'true' && steps.check.outputs.already_updated != 'true'
+        if: steps.check.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for PR #${{ github.event.pull_request.number }} [skip ci]"
+          git push
 
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "docs: update CHANGELOG.md for PR #${{ steps.pr.outputs.number }}"
-            git push
-            echo "✅ Changelog updated and committed"
-          fi
+      - name: Remove label
+        if: steps.check.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              name: 'ready-for-changelog'
+            });
+
+      - name: Add comment
+        if: steps.check.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: '✅ CHANGELOG.md has been updated automatically.'
+            });
