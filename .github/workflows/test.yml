@@ -9,6 +9,9 @@ on:
       - main
 
 jobs:
+  # Main test job - runs comprehensive tests including regression tests
+  # This job verifies TypeScript compilation, build process, unit tests,
+  # transform regression tests, and package contents
   test:
     runs-on: ubuntu-latest
 
@@ -47,6 +50,9 @@ jobs:
           npm pack --dry-run
           echo "✅ Package verification complete"
 
+  # Matrix test job - ensures compatibility across Node.js versions
+  # Tests the package build and unit tests on Node.js 20 and 22
+  # This ensures the package works correctly on different Node.js LTS versions
   test-matrix:
     runs-on: ubuntu-latest
     strategy:
