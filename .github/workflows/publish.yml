@@ -32,8 +32,18 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Run tests
+      - name: Compile TypeScript
+        run: yarn tsc
+
+      - name: Build package
+        run: yarn build
+
+      - name: Run unit tests
         run: yarn test
+        continue-on-error: true # Don't fail publish if tests fail
+
+      - name: Run transform tests
+        run: ./run-tests.sh
         continue-on-error: true # Don't fail publish if tests fail
 
       - name: Publish to npm
