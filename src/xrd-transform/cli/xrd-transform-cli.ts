@@ -46,32 +46,105 @@ function getCurrentKubectlContext(): string | undefined {
 }
 
 /**
- * Load configuration from app-config/ingestor.yaml
- * Tries multiple paths relative to the plugin package
+ * Load configuration from app-config files
+ *
+ * Priority:
+ * 1. app-config/ingestor.yaml (modular config)
+ * 2. app-config.yaml + includes (monolithic config)
+ *
+ * If app-config/ingestor.yaml exists, don't load app-config.yaml
  */
 function loadIngestorConfig(): any {
-  // Try to find app-config/ingestor.yaml relative to the plugin package
-  // From plugin root: ../../app-config/ingestor.yaml (monorepo structure)
-  const possiblePaths = [
-    path.join(__dirname, '../../../app-config/ingestor.yaml'), // From dist/xrd-transform/cli
-    path.join(__dirname, '../../../../app-config/ingestor.yaml'), // From src/xrd-transform/cli
-    path.join(process.cwd(), '../../app-config/ingestor.yaml'), // From plugin directory (wrapper script)
-    path.join(process.cwd(), 'app-config/ingestor.yaml'), // From app-portal root
+  // Possible base directories to search
+  const baseDirs = [
+    process.cwd(),                                    // Current working directory (app-portal root)
+    path.join(process.cwd(), '../..'),                // From plugin directory
+    path.join(__dirname, '../../..'),                 // From dist/xrd-transform/cli
+    path.join(__dirname, '../../../..'),              // From src/xrd-transform/cli
   ];
 
-  for (const configPath of possiblePaths) {
-    if (fs.existsSync(configPath)) {
+  // Try modular config first (app-config/ingestor.yaml)
+  for (const baseDir of baseDirs) {
+    const modularConfigPath = path.join(baseDir, 'app-config', 'ingestor.yaml');
+    if (fs.existsSync(modularConfigPath)) {
       try {
-        const configContent = fs.readFileSync(configPath, 'utf-8');
-        return yaml.load(configContent);
+        const configContent = fs.readFileSync(modularConfigPath, 'utf-8');
+        const config = yaml.load(configContent);
+        return config;
       } catch (error) {
-        log(`Warning: Found config at ${configPath} but failed to load: ${error}`, 'yellow');
+        log(`Warning: Found config at ${modularConfigPath} but failed to load: ${error}`, 'yellow');
+      }
+    }
+  }
+
+  // Fall back to monolithic config (app-config.yaml + includes)
+  for (const baseDir of baseDirs) {
+    const monolithicConfigPath = path.join(baseDir, 'app-config.yaml');
+    if (fs.existsSync(monolithicConfigPath)) {
+      try {
+        const config = loadAppConfig(monolithicConfigPath, baseDir);
+        return config;
+      } catch (error) {
+        log(`Warning: Found config at ${monolithicConfigPath} but failed to load: ${error}`, 'yellow');
       }
     }
   }
 
   // Return empty config if not found
   return {};
+}
+
+/**
+ * Load app-config.yaml and process $include directives
+ */
+function loadAppConfig(configPath: string, baseDir: string): any {
+  const configContent = fs.readFileSync(configPath, 'utf-8');
+  const config = yaml.load(configContent) as any;
+
+  // Process $include directives if present
+  if (config && typeof config === 'object') {
+    return processIncludes(config, baseDir);
+  }
+
+  return config;
+}
+
+/**
+ * Process $include directives in config object
+ * Backstage uses $include to reference other config files
+ */
+function processIncludes(obj: any, baseDir: string): any {
+  if (Array.isArray(obj)) {
+    return obj.map(item => processIncludes(item, baseDir));
+  }
+
+  if (obj && typeof obj === 'object') {
+    // Handle $include directive
+    if (obj.$include) {
+      const includePath = path.resolve(baseDir, obj.$include);
+      if (fs.existsSync(includePath)) {
+        try {
+          const includeContent = fs.readFileSync(includePath, 'utf-8');
+          const includeData = yaml.load(includeContent);
+          // Recursively process includes in the included file
+          return processIncludes(includeData, path.dirname(includePath));
+        } catch (error) {
+          log(`Warning: Failed to load include ${includePath}: ${error}`, 'yellow');
+          return obj;
+        }
+      }
+      return obj;
+    }
+
+    // Recursively process all object properties
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = processIncludes(value, baseDir);
+    }
+    return result;
+  }
+
+  return obj;
 }
 
 /**
@@ -123,13 +196,84 @@ function getDefaultTemplateDir(): string {
 }
 const DEFAULT_TEMPLATE_DIR = getDefaultTemplateDir();
 
+/**
+ * Recursively copy directory
+ */
+async function copyDirectory(source: string, destination: string): Promise<void> {
+  // Create destination directory
+  if (!fs.existsSync(destination)) {
+    fs.mkdirSync(destination, { recursive: true });
+  }
+
+  // Read source directory
+  const entries = fs.readdirSync(source, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(source, entry.name);
+    const destPath = path.join(destination, entry.name);
+
+    if (entry.isDirectory()) {
+      // Recursively copy subdirectory
+      await copyDirectory(srcPath, destPath);
+    } else {
+      // Copy file
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 program
   .name('xrd-transform')
   .description('Transform XRDs into Backstage templates using Handlebars templates')
-  .version('1.0.0')
+  .version('1.0.0');
+
+// Init command - copy default templates to project
+program
+  .command('init')
+  .description('Initialize custom templates by copying defaults from npm package')
+  .option('-o, --output <dir>', 'Output directory for templates', './ingestor-templates')
+  .option('-f, --force', 'Overwrite existing templates')
+  .option('-v, --verbose', 'Verbose output')
+  .action(async (options) => {
+    const outputDir = path.resolve(process.cwd(), options.output);
+
+    // Check if directory already exists
+    if (fs.existsSync(outputDir) && !options.force) {
+      log(`✗ Template directory already exists: ${outputDir}`, 'yellow');
+      log('  Use --force to overwrite', 'gray');
+      process.exit(1);
+    }
+
+    try {
+      // Copy templates from package
+      await copyDirectory(DEFAULT_TEMPLATE_DIR, outputDir);
+
+      log(`✓ Copied templates to ${outputDir}`, 'green');
+      log('', 'reset');
+      log('Next steps:', 'blue');
+      log(`  1. Customize templates in ${options.output}/`, 'gray');
+      log(`  2. Add to app-config/ingestor.yaml:`, 'gray');
+      log('', 'reset');
+      log('     ingestor:', 'gray');
+      log('       crossplane:', 'gray');
+      log('         xrds:', 'gray');
+      log(`           templateDir: '${options.output}'`, 'gray');
+      log('', 'reset');
+      log(`  3. Test with CLI: npx ingestor path/to/xrd.yaml`, 'gray');
+      log('  4. Restart Backstage: yarn start', 'gray');
+    } catch (error) {
+      log(`✗ Failed to copy templates: ${error}`, 'red');
+      process.exit(1);
+    }
+  });
+
+// Transform command (default)
+program
+  .command('transform', { isDefault: true })
+  .description('Transform XRDs into Backstage templates')
   .argument('[input]', 'Input file or directory (or stdin if not provided)')
   .option('-t, --template <name>', 'Template name to use (overrides XRD annotation, e.g., "debug", "default")')
-  .option('--template-path <dir>', 'Template directory path (defaults to built-in templates)')
+  .option('--template-path <dir>', 'Template directory path (overrides config)')
   .option('-o, --output <dir>', 'Output directory (default: stdout)')
   .option('-f, --format <format>', 'Output format (yaml|json)', 'yaml')
   .option('--only <type>', 'Only generate specific entity type (template|api)')
@@ -140,8 +284,22 @@ program
   .option('--watch', 'Watch for changes (when input is directory)')
   .action(async (input, options) => {
     try {
-      // Use default template directory if not specified
-      const templateDir = options.templatePath || DEFAULT_TEMPLATE_DIR;
+      // Load configuration for template directory and gitops settings
+      const config = loadIngestorConfig();
+      const configTemplateDir = config?.ingestor?.crossplane?.xrds?.templateDir;
+
+      // Priority: CLI flag > config > built-in default
+      let templateDir: string;
+      if (options.templatePath) {
+        // CLI flag takes highest priority
+        templateDir = path.resolve(options.templatePath);
+      } else if (configTemplateDir) {
+        // Use config setting (resolve relative to cwd)
+        templateDir = path.resolve(process.cwd(), configTemplateDir);
+      } else {
+        // Fall back to built-in templates
+        templateDir = DEFAULT_TEMPLATE_DIR;
+      }
 
       // Read input
       const xrdData = await readInput(input, options);
@@ -169,8 +327,7 @@ program
       // Determine effective template name (override or default)
       const effectiveTemplateName = options.template || 'default';
 
-      // Load configuration for template context
-      const config = loadIngestorConfig();
+      // Extract gitops configuration from already-loaded config
       let gitopsConfig = config?.ingestor?.crossplane?.xrds?.gitops || {};
 
       // Determine which template will be used (check XRD annotations or CLI override)
