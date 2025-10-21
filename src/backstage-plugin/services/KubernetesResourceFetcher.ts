@@ -97,28 +97,35 @@ export class DefaultKubernetesResourceFetcher implements KubernetesResourceFetch
     return await response.json();
   }
 
-  async proxyKubernetesRequest(
-    clusterName: string,
-    request: KubernetesProxyRequestBody,
-  ): Promise<any> {
+  async proxyRequest(body: KubernetesProxyRequestBody): Promise<any> {
     const baseUrl = await this.discoveryApi.getBaseUrl('kubernetes');
     const credentials = await this.auth.getOwnServiceCredentials();
     const { token } = await this.auth.getPluginRequestToken({
       onBehalfOf: credentials,
       targetPluginId: 'kubernetes',
     });
-    
-    const response = await fetch(`${baseUrl}/proxy${request.path}`, {
+
+    const response = await fetch(`${baseUrl}/proxy${body.path}`, {
       headers: {
-        'Backstage-Kubernetes-Cluster': clusterName,
+        'Backstage-Kubernetes-Cluster': body.clusterName,
         'Authorization': `Bearer ${token}`,
+        'X-Ingestor': 'true', // Add custom header for log filtering
       },
+      method: body.method || 'GET',
+      body: body.body ? JSON.stringify(body.body) : undefined,
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch Kubernetes resources: ${response.statusText}`);
+      throw new Error(`Failed to proxy Kubernetes request: ${response.statusText}`);
     }
 
     return await response.json();
+  }
+
+  async proxyKubernetesRequest(
+    clusterName: string,
+    request: KubernetesProxyRequestBody,
+  ): Promise<any> {
+    return this.proxyRequest({ ...request, clusterName });
   }
 }

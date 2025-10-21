@@ -123,10 +123,13 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       // Apply mutation to catalog
       await this.connection.applyMutation({
         type: 'full',
-        entities: allEntities.map(({ _xrdBaseName, ...entity }) => ({
-          entity,
-          locationKey: `provider:${this.getProviderName()}`,
-        })),
+        entities: allEntities.map((entityWithMeta: any) => {
+          const { _xrdBaseName, ...entity } = entityWithMeta;
+          return {
+            entity,
+            locationKey: `provider:${this.getProviderName()}`,
+          };
+        }),
       });
     } catch (error) {
       this.logger.error(`Failed to run XRDTemplateEntityProvider: ${error}`);

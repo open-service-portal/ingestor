@@ -245,21 +245,6 @@ export class XRDTransformer {
   }
 
   /**
-   * Load and register a sub-template as a Handlebars partial
-   */
-  private loadPartial(partialName: string, templatePath: string): void {
-    const fullPath = path.join(this.templateDir, templatePath);
-
-    if (!fs.existsSync(fullPath)) {
-      // Partial is optional, just skip if not found
-      return;
-    }
-
-    const templateSource = fs.readFileSync(fullPath, 'utf-8');
-    this.handlebars.registerPartial(partialName, templateSource);
-  }
-
-  /**
    * Render multiple comma-separated sub-templates and merge them
    * Supports building block pattern like "gitops,download" or "metadata,crossplane"
    */
