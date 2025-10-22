@@ -36,12 +36,20 @@ export class XRDTransformer {
   private templateDir: string;
   private templateNameOverride?: string;
   private helpers: ReturnType<typeof createHelpers>;
+  private verbose: boolean;
 
   constructor(options?: TransformOptions) {
     this.templateDir = options?.templateDir || DEFAULT_TEMPLATE_DIR;
     this.templateNameOverride = options?.templateName;
+    this.verbose = options?.verbose ?? false;
     this.helpers = createHelpers();
     this.handlebars = Handlebars.create();
+
+    // Debug: Log template directory (only in verbose mode)
+    if (this.verbose) {
+      console.log(`[XRDTransformer] Template directory: ${this.templateDir}`);
+      console.log(`[XRDTransformer] Template directory exists: ${fs.existsSync(this.templateDir)}`);
+    }
 
     // Register helpers with Handlebars
     this.registerHelpers();

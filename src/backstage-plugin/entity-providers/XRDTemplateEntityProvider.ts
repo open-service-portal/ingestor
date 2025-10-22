@@ -26,7 +26,24 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     private readonly resourceFetcher: DefaultKubernetesResourceFetcher,
   ) {
     // Initialize transformer with optional custom template directory
-    const templateDir = this.config.getOptionalString('ingestor.transform.templateDir');
+    const templateDirConfig = this.config.getOptionalString('ingestor.crossplane.xrds.templateDir');
+
+    // Resolve relative paths to absolute paths
+    // Config paths are relative to the app-portal root, not backend working directory
+    let templateDir: string | undefined;
+    if (templateDirConfig) {
+      const path = require('path');
+      // Resolve relative to app-portal root (2 levels up from packages/backend)
+      const appRoot = path.resolve(process.cwd(), '../..');
+      templateDir = path.resolve(appRoot, templateDirConfig);
+      this.logger.info(`XRDTemplateEntityProvider: Resolved template directory: ${templateDir}`);
+      this.logger.info(`  Config value: ${templateDirConfig}`);
+      this.logger.info(`  App root: ${appRoot}`);
+      this.logger.info(`  CWD: ${process.cwd()}`);
+    } else {
+      this.logger.info(`XRDTemplateEntityProvider: Using default template directory (npm package)`);
+    }
+
     this.transformer = new XRDTransformer(templateDir ? { templateDir } : undefined);
   }
 
@@ -215,9 +232,10 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     // Debug: Log generated template entities
     if (result.success && result.entities && result.entities.length > 0) {
       for (const entity of result.entities) {
-        this.logger.debug(`Generated entity for ${xrd.metadata?.name}:`);
-        this.logger.debug(`  Kind: ${entity.kind}`);
-        this.logger.debug(`  Name: ${entity.metadata?.name}`);
+        this.logger.info(`Generated entity for ${xrd.metadata?.name}:`);
+        this.logger.info(`  Kind: ${entity.kind}`);
+        this.logger.info(`  Name: ${entity.metadata?.name}`);
+        this.logger.info(`  Labels: ${JSON.stringify(entity.metadata?.labels || null)}`);
 
         // Log scaffolder steps for Template entities
         if (entity.kind === 'Template' && entity.spec?.steps) {
