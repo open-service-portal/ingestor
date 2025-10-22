@@ -13,6 +13,10 @@ metadata:
   name: {{slugify xrd.metadata.name}}
   title: {{extractTitle xrd}}
   description: {{#if xrd.metadata.annotations.["backstage.io/description"]}}{{xrd.metadata.annotations.["backstage.io/description"]}}{{else}}Create and manage {{xrd.spec.names.kind}} resources{{/if}}
+{{#if (getLabel xrd "openportal.dev/version")}}
+  labels:
+    openportal.dev/version: "{{getLabel xrd "openportal.dev/version"}}"
+{{/if}}
   tags:
     - crossplane
     - {{replace xrd.spec.group "." "-"}}

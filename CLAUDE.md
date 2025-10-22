@@ -171,24 +171,45 @@ cat tests/xrd-transform/expected/09-my-test.yaml | less
 
 ### Updating Expected Outputs
 
-**⚠️ IMPORTANT:** Only update expected outputs when you have intentionally changed behavior!
+**⚠️ CRITICAL RULE:** Only update expected outputs when you have intentionally changed behavior!
+
+**NEVER overwrite entire assert files!** Only modify the specific sections that changed. This preserves:
+- Test documentation headers
+- Unaffected test content
+- Git history clarity
 
 ```bash
 # 1. Run tests to see differences
 ./run-tests.sh
 
-# 2. Review each diff carefully
-# Understand WHY the output changed
+# 2. Review each diff carefully - understand WHY the output changed
 
-# 3. Update specific test (if change is intentional)
-cp tests/xrd-transform/output/01-basic-namespaced.yaml \
-   tests/xrd-transform/expected/01-basic-namespaced.yaml
+# 3. Make SURGICAL edits to assert files (PREFERRED METHOD)
+# Read the assert file first
+cat tests/e2e/assert-namespace.yaml
 
-# 4. Document the change in your commit message
-git commit -m "fix: update XRD transform to handle X properly"
+# Edit ONLY the changed section (e.g., adding labels field)
+# Use your editor to add/modify only the specific lines that need updating
+# DO NOT copy the entire output file over the assert file!
+
+# 4. If you must copy (last resort), restore from git first:
+git checkout tests/e2e/assert-namespace.yaml  # Get clean version
+# Then make only the minimal change needed
+
+# 5. Verify the change is minimal
+git diff tests/e2e/assert-namespace.yaml
+
+# 6. Document the change in your commit message
+git commit -m "fix: add version label support to template transformation"
 ```
 
-**Never blindly regenerate all expected files!** Each change should be reviewed and understood.
+**Why this matters:**
+- Assert files contain important documentation headers explaining the test purpose
+- Full file overwrites lose these headers and break the test infrastructure
+- Surgical edits preserve context and make changes reviewable
+- Git diffs become meaningful when only relevant lines change
+
+**Never blindly regenerate all expected files!** Each change should be reviewed, understood, and applied surgically.
 
 ## CLI Architecture
 

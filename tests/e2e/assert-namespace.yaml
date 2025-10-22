@@ -24,6 +24,8 @@ metadata:
   name: managednamespaces-openportal-dev
   title: Managed Namespace
   description: Create and manage ManagedNamespace resources
+  labels:
+    openportal.dev/version: dev
   tags:
     - crossplane
     - openportal-dev
