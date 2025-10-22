@@ -1,234 +1,85 @@
-# XRD Transform Templates
+# Ingestor Templates - Customization Guide
 
-This directory contains Handlebars templates for transforming Crossplane XRDs into Backstage entities.
+Welcome! You've just initialized custom templates for the ingestor plugin. These templates control how Crossplane XRDs (Composite Resource Definitions) are transformed into Backstage software templates.
+
+## What Are These Templates?
+
+The ingestor plugin automatically discovers XRDs from your Kubernetes clusters and converts them into user-friendly forms in Backstage. These Handlebars templates define:
+- **What form fields** users see when creating resources
+- **What workflows** execute when users submit the form (direct apply vs GitOps PR)
+- **What output** users see after creating a resource
+
+Think of templates as the "UI generator" for your infrastructure-as-code resources.
 
 ## Directory Structure
 
 ```
-templates/
-├── backstage/          # Main Backstage Template entity structure
-│   └── default.hbs     # Default template structure
-├── parameters/         # Scaffolder form parameters
-│   ├── default.hbs     # Scope-aware parameters (works for both namespaced and cluster-scoped)
-│   └── gitops.hbs      # GitOps parameters with runtime override fields
-├── steps/              # Scaffolder workflow steps
-│   ├── default.hbs     # Direct kube:apply workflow (works for both scopes)
-│   └── gitops.hbs      # GitOps PR workflow with three-level config support
-├── output/             # Scaffolder output sections (links & text)
-│   ├── default.hbs     # Download manifest link (works for both workflows)
-│   ├── pr-link.hbs     # Pull request link (GitOps workflow)
-│   ├── gitops.hbs      # GitOps workflow summary text
-│   ├── download-manifest.hbs  # Download link building block
-│   └── gitops-summary.hbs     # Summary text building block
-└── api/                # API documentation entities
-    └── default.hbs     # Default OpenAPI documentation
+ingestor-templates/
+├── README.md              # This file - your guide to customization
+├── backstage/             # Main template structure
+│   ├── default.hbs        # Primary template (works for all resource types)
+│   └── debug.hbs          # Debugging template (shows all available data)
+├── parameters/            # Form field definitions
+│   ├── default.hbs        # Standard fields (name, namespace, resource properties)
+│   └── gitops.hbs         # GitOps fields (repository, branch overrides)
+├── steps/                 # Workflow definitions
+│   ├── default.hbs        # Direct kubectl apply workflow
+│   └── gitops.hbs         # PR-based GitOps workflow
+├── output/                # User feedback after execution
+│   ├── default.hbs        # Download manifest link
+│   ├── pr-link.hbs        # Pull request link
+│   ├── gitops.hbs         # GitOps summary
+│   ├── download-manifest.hbs  # Building block: download link
+│   └── gitops-summary.hbs     # Building block: summary text
+└── api/                   # API documentation entities
+    └── default.hbs        # OpenAPI documentation template
 ```
 
-### Recent Updates
+## Quick Start: Making Your First Customization
 
-- **Three-Level Configuration**: User parameters → XRD annotations → Global config hierarchy
-- **GitOps Parameters Template**: New `gitops.hbs` enables runtime GitOps configuration overrides
-- **Unified Templates**: `default.hbs` templates handle both namespaced and cluster-scoped resources
-- **GitOps Workflow**: `gitops.hbs` with three-level config fallback support
-- **Configuration-Driven**: Templates use configuration from `app-config/ingestor.yaml`
-- **XRD-Level Overrides**: `openportal.dev/parameter.*` annotations for per-template defaults
-- **TechDocs Integration**: Automatic `backstage.io/techdocs-ref` annotation passthrough
-- **Triple-Brace Fix**: Backstage variables use `{{{...}}}` to prevent HTML escaping
+### Example 1: Add Your Organization's Branding
+
+Edit `backstage/default.hbs` to add custom tags:
+
+```handlebars
+# Find the tags section:
+tags:
+  - crossplane
+  - {{xrd.spec.group}}
+  - acme-corp  # ← Add your organization tag
+```
+
+**Save, restart Backstage**, and all new XRD-generated templates will include your tag!
+
+### Example 2: Customize GitOps PR Titles
+
+Edit `steps/gitops.hbs` to change how PRs are titled:
+
+```handlebars
+# Find the title line in create-pull-request action:
+title: "feat(infra): new {{xrd.spec.names.kind}} - \${{ parameters.name }}"
+# ← Changed from generic "Create" to semantic commit style
+```
+
+### Example 3: Add Parameter Validation
+
+Edit `parameters/default.hbs` to enforce naming rules:
+
+```handlebars
+name:
+  title: Resource Name
+  type: string
+  description: Must be lowercase with dashes
+  pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+  minLength: 3      # ← Add minimum length
+  maxLength: 63     # ← Add maximum length
+```
 
 ## How Templates Work
 
-### 1. Self-Contained YAML Merge Architecture
+### 1. XRDs Choose Their Templates
 
-The transform uses a **YAML-aware merge** process where each template is self-contained:
-
-1. **Main Template** is rendered → produces base structure (metadata + `spec.owner/type`)
-2. **Sub-Templates** are rendered → each produces complete `spec` sections:
-   - Parameters template → `spec.parameters: [...]`
-   - Steps template → `spec.steps: [...]`
-   - Output template → `spec.output: {...}`
-3. **YAML Merge** combines all templates:
-   - Objects are merged recursively
-   - Arrays are concatenated
-   - Later values win on conflicts
-
-**Benefits:**
-- Sub-templates are self-contained and show their complete structure
-- No manual indentation needed
-- Multi-template composition works seamlessly
-- Building blocks can be mixed and matched
-
-### 2. Template Selection
-
-XRDs specify which templates to use via annotations:
-
-```yaml
-apiVersion: apiextensions.crossplane.io/v2
-kind: CompositeResourceDefinition
-metadata:
-  name: example.openportal.dev
-  annotations:
-    backstage.io/template: "default"              # Main template
-    backstage.io/template-api: "default"          # API docs
-    backstage.io/template-parameters: "default"   # Form fields
-    backstage.io/template-steps: "default"        # Workflow
-```
-
-### 3. Available Variables
-
-All templates have access to:
-
-```typescript
-{
-  xrd: any,                    // Full XRD object
-  metadata: {                  // Extraction metadata
-    cluster?: string,          // Current kubectl context (auto-detected)
-    namespace?: string,
-    path?: string,
-  },
-  config: {                    // Configuration from app-config/ingestor.yaml
-    gitops: {                  // GitOps workflow settings
-      ordersRepo: {
-        owner: string,         // GitHub org/user
-        repo: string,          // Repository name
-        targetBranch: string,  // Target branch (e.g., 'main')
-      }
-    }
-  },
-  helpers: {                   // Utility functions
-    slugify,
-    extractTitle,
-    extractProperties,
-    getAnnotation,
-    getLabel,
-  },
-  source: string,              // Where XRD came from
-  timestamp: string,           // When extracted
-}
-```
-
-**Note:** Sub-templates no longer need to be indented or embedded in the main template. Each template provides its own complete YAML structure, and the transform engine merges them automatically.
-
-### 4. Configuration
-
-Templates can access configuration from `app-config/ingestor.yaml`:
-
-```yaml
-# app-config/ingestor.yaml
-kubernetesIngestor:
-  crossplane:
-    xrds:
-      gitops:
-        ordersRepo:
-          owner: 'your-org'
-          repo: 'catalog-orders'
-          targetBranch: 'main'
-```
-
-Access in templates:
-
-```handlebars
-repoUrl: github.com?owner={{config.gitops.ordersRepo.owner}}&repo={{config.gitops.ordersRepo.repo}}
-targetBranchName: {{config.gitops.ordersRepo.targetBranch}}
-```
-
-**Validation**: GitOps templates (those with "gitops" in the name) require this configuration. The CLI validates and fails fast with helpful error messages if config is missing.
-
-### 5. XRD-Level Configuration Overrides
-
-Individual XRDs can override global GitOps configuration using parameter annotations:
-
-```yaml
-apiVersion: apiextensions.crossplane.io/v2
-kind: CompositeResourceDefinition
-metadata:
-  name: databases.example.com
-  annotations:
-    openportal.dev/template-steps: "gitops"
-
-    # Override global GitOps settings for this XRD only
-    openportal.dev/parameter.gitopsOwner: "database-team"
-    openportal.dev/parameter.gitopsRepo: "database-orders"
-    openportal.dev/parameter.gitopsTargetBranch: "staging"
-```
-
-**Pattern**: `openportal.dev/parameter.<parameterName>: <value>`
-
-This sets default values for template parameters. These annotations:
-- Override global config from `app-config/ingestor.yaml`
-- Are overridden by user input in the UI form
-- Work for ANY parameter, not just GitOps config
-
-**Configuration Hierarchy** (highest to lowest priority):
-1. **User parameter input** (runtime, via UI form) - **HIGHEST** priority, ultimate user control
-2. **XRD annotation** (`openportal.dev/parameter.*`) - Per-template parameter defaults
-3. **Global config** (`app-config/ingestor.yaml`) - **LOWEST** priority, default fallback
-
-**Use Cases:**
-- **User parameters**: Ad-hoc testing, personal forks, temporary branches
-- **XRD annotation**: Team-specific repositories, resource-type workflows
-- **Global config**: Organization-wide defaults
-
-### 6. User Parameter Overrides
-
-To enable users to override GitOps configuration at runtime, use the `gitops` parameters template:
-
-```yaml
-apiVersion: apiextensions.crossplane.io/v2
-kind: CompositeResourceDefinition
-metadata:
-  name: example.openportal.dev
-  annotations:
-    openportal.dev/template-steps: "gitops"
-    openportal.dev/template-parameters: "gitops"  # Enable parameter overrides
-```
-
-This adds an "Advanced GitOps Configuration" section to the form with:
-- `gitopsOwner` - Override GitHub organization/user
-- `gitopsRepo` - Override repository name
-- `gitopsTargetBranch` - Override target branch
-
-Users can leave these empty to use defaults, or override them for specific needs (testing, personal forks, etc.).
-
-**Benefits:**
-- Three-level configuration hierarchy with clear precedence
-- Users have ultimate control when needed
-- Templates define sensible per-resource defaults
-- Global config provides organization-wide consistency
-- Testable at all levels (CLI, XRD annotation, runtime parameters)
-
-## Creating Custom Templates
-
-### Example: Custom Database Parameters
-
-Create `parameters/database.hbs`:
-
-```handlebars
-    - title: Database Configuration
-      required:
-        - name
-        - engine
-        - storage
-      properties:
-        name:
-          title: Database Name
-          type: string
-          pattern: '^[a-z0-9-]+$'
-        engine:
-          title: Database Engine
-          type: string
-          enum:
-            - postgres
-            - mysql
-            - mongodb
-        storage:
-          title: Storage Size (GB)
-          type: number
-          minimum: 10
-          maximum: 1000
-          default: 20
-```
-
-Then use it in your XRD:
+Your XRDs specify which templates to use via annotations:
 
 ```yaml
 apiVersion: apiextensions.crossplane.io/v2
@@ -236,294 +87,355 @@ kind: CompositeResourceDefinition
 metadata:
   name: databases.platform.io
   annotations:
-    backstage.io/template-parameters: "database"
+    # These annotations select which templates to use:
+    backstage.io/template: "default"              # Main structure
+    backstage.io/template-parameters: "default"   # Form fields
+    backstage.io/template-steps: "gitops"         # Workflow (use gitops.hbs)
+    backstage.io/template-output: "default,pr-link,gitops"  # User feedback
 ```
 
-### Example: GitOps PR Workflow
+**No annotation?** The ingestor uses `default` for everything.
 
-The built-in `gitops.hbs` template demonstrates the GitOps pattern:
+### 2. Templates Are Merged Together
+
+The ingestor renders each template separately and merges them:
+
+1. **Main template** (`backstage/default.hbs`) → Base structure
+2. **Parameters template** → Form fields section
+3. **Steps template** → Workflow section
+4. **Output template** → Links and summary section
+5. **YAML merge** → Combined into final template
+
+This modular approach means you can mix and match templates!
+
+### 3. Templates Have Access to Data
+
+Templates can use these variables:
 
 ```handlebars
-    - id: generateManifest
-      name: Generate Kubernetes Resource Manifest
-      action: terasky:claim-template
-      input:
-        parameters: {{backstageVar "parameters"}}
-        nameParam: name
-        namespaceParam: {{#if (eq xrd.spec.scope "Namespaced")}}'namespace'{{else}}''{{/if}}
-        ownerParam: owner
-        excludeParams:
-          - owner
-          - name
-          - namespace
-        apiVersion: {{xrd.spec.group}}/{{xrd.spec.versions.[0].name}}
-        kind: {{xrd.spec.names.kind}}
-        clusters: ['{{metadata.cluster}}']
-        removeEmptyParams: true
+{{!-- XRD information --}}
+{{xrd.spec.group}}                 # e.g., "platform.io"
+{{xrd.spec.names.kind}}            # e.g., "Database"
+{{xrd.spec.scope}}                 # "Namespaced" or "Cluster"
 
-    - id: create-pull-request
-      name: Create Pull Request
-      action: publish:github:pull-request
-      input:
-        repoUrl: github.com?owner={{config.gitops.ordersRepo.owner}}&repo={{config.gitops.ordersRepo.repo}}
-        branchName: {{{backstageVar "\"create-\" + parameters.name + \"-resource\""}}}
-        title: {{{backstageVar "\"Create \" + parameters.name + \" Resource\""}}}
-        description: {{{backstageVar "\"Create \" + xrd.spec.names.kind + \" resource \" + parameters.name"}}}
-        targetBranchName: {{config.gitops.ordersRepo.targetBranch}}
+{{!-- Configuration from app-config.yaml --}}
+{{config.gitops.ordersRepo.owner}} # GitHub org/user
+{{config.gitops.ordersRepo.repo}}  # Repository name
+{{config.gitops.ordersRepo.targetBranch}}  # Target branch
+
+{{!-- Metadata (from CLI execution) --}}
+{{metadata.cluster}}               # Current kubectl context
+{{metadata.source}}                # Where XRD came from
+
+{{!-- Backstage variables (user input at runtime) --}}
+{{{backstageVar "parameters.name"}}}  # User's resource name
 ```
 
-**Key Features:**
-- Uses `terasky:claim-template` for manifest generation
-- Gets repo config from `app-config/ingestor.yaml`
-- Auto-detects cluster from kubectl context
-- Handles both namespaced and cluster-scoped resources
-- Creates PRs to catalog-orders repository
+**Important:** Use triple braces `{{{...}}}` for Backstage variables to prevent HTML escaping!
 
-Use in your XRD:
+## Common Customizations
 
-```yaml
-metadata:
-  annotations:
-    openportal.dev/template-steps: "gitops"
-```
-
-### Example: Output Templates
-
-Output templates provide the links and text shown to users after template execution. They are organized as **building blocks** that can be composed:
-
-#### Default Output (Download Manifest)
-
-The `default.hbs` output template provides a download link for the generated manifest:
+### Add Team-Specific Tags
 
 ```handlebars
-spec:
-  output:
-    links:
-      - title: Download YAML Manifest
-        icon: docs
-        url: {{{backstageVar "\"data:application/yaml;charset=utf-8,\" + encodeURIComponent(steps['generateManifest'].output.manifest || steps['create-resource'].output.manifest || '')"}}}
+{{!-- backstage/default.hbs --}}
+tags:
+  - crossplane
+  - {{xrd.spec.group}}
+  - {{#if (includes xrd.spec.group "database")}}database-team{{/if}}
+  - {{#if (includes xrd.spec.group "networking")}}network-team{{/if}}
 ```
 
-**Works with both workflows:**
-- Direct workflow: Uses `steps['create-resource'].output.manifest`
-- GitOps workflow: Uses `steps['generateManifest'].output.manifest`
-
-#### PR Link
-
-The `pr-link.hbs` template provides a link to the created pull request:
+### Customize Form Field Labels
 
 ```handlebars
-spec:
-  output:
-    links:
-      - title: View Pull Request
-        icon: github
-        url: {{{backstageVar "steps['create-pull-request'].output.remoteUrl"}}}
+{{!-- parameters/default.hbs --}}
+name:
+  title: 🏷️ Resource Identifier  # ← Add emoji and friendly title
+  type: string
+  description: A unique name for your {{xrd.spec.names.kind}}
 ```
 
-#### GitOps Summary
-
-The `gitops.hbs` template provides summary text about the GitOps workflow:
+### Change PR Description Format
 
 ```handlebars
-spec:
-  output:
-    text:
-      - title: "📋 GitOps Workflow Summary"
-        content: |
-          **Your {{xrd.spec.names.kind}} request has been submitted!** ✅
+{{!-- steps/gitops.hbs --}}
+description: |
+  ## 🚀 New {{xrd.spec.names.kind}} Request
 
-          **GitOps Repository:** {{config.gitops.owner}}/{{config.gitops.repo}}
-          **Target Cluster:** {{metadata.cluster}}
+  **Resource Name**: \${{ parameters.name }}
+  **Requested By**: \${{ user.entity.metadata.name }}
+  **Team**: \${{ user.entity.spec.memberOf[0] }}
 
-          Your resource will be deployed after the PR is reviewed and merged.
+  Please review and merge to deploy this resource.
 ```
 
-#### Composing Output Templates
-
-Use comma-separated template names to compose multiple outputs:
-
-```yaml
-metadata:
-  annotations:
-    openportal.dev/template-steps: "gitops"
-    openportal.dev/template-output: "default,pr-link,gitops"  # Download + PR link + Summary
-```
-
-**Common combinations:**
-- **Direct workflow**: `"default"` - Just the download link
-- **GitOps workflow**: `"default,pr-link,gitops"` - Download + PR link + Summary
-- **Minimal GitOps**: `"pr-link,gitops"` - Just PR link and summary
-- **Summary only**: `"gitops"` - Just the summary text
-
-## Helper Functions
-
-### Built-in Helpers
-
-- `{{slugify text}}` - Convert to URL-safe format
-- `{{extractTitle xrd}}` - Get human-readable title
-- `{{extractProperties xrd}}` - Parse schema properties
-- `{{getAnnotation xrd "key"}}` - Get annotation value
-- `{{getLabel xrd "key"}}` - Get label value
-- `{{backstageVar "path"}}` - Preserve Backstage variable syntax
-- `{{split string ","}}` - Split by delimiter
-- `{{trim string}}` - Remove whitespace
-- `{{json object}}` - JSON stringify
-- `{{eq a b}}` - Equality comparison
-- `{{includes array value}}` - Array includes check
-
-### Example Usage
+### Add Conditional Fields Based on XRD Type
 
 ```handlebars
-{{!-- Title extraction --}}
-title: {{extractTitle xrd}}
-
-{{!-- Property iteration --}}
-{{#each (extractProperties xrd)}}
-{{name}}:
-  type: {{type}}
-  {{#if description}}description: {{description}}{{/if}}
-{{/each}}
-
-{{!-- Conditional rendering --}}
-{{#if (getAnnotation xrd "backstage.io/owner")}}
-owner: {{getAnnotation xrd "backstage.io/owner"}}
-{{else}}
-owner: platform-team
+{{!-- parameters/default.hbs --}}
+{{#if (includes xrd.spec.group "database")}}
+backup:
+  title: Enable Backups
+  type: boolean
+  default: true
+  description: Automated daily backups
 {{/if}}
-
-{{!-- Tag parsing --}}
-{{#each (split (getAnnotation xrd "openportal.dev/tags") ",")}}
-  - {{trim this}}
-{{/each}}
-
-{{!-- Backstage variable preservation --}}
-name: {{backstageVar "parameters.name"}}
 ```
 
-## Template Development Tips
+## Testing Your Changes
 
-### 1. Maintain Proper Indentation
-
-YAML requires precise indentation. Sub-templates should include their indentation:
-
-```handlebars
-    - title: My Section
-      properties:
-        field:
-          type: string
-```
-
-### 2. HTML Escaping: When to Use Triple-Braces
-
-**Important**: Handlebars escapes HTML entities by default with `{{...}}`. Use `{{{...}}}` (triple braces) to output raw values.
-
-**Use triple-braces for:**
-- Backstage variables containing quotes: `{{{backstageVar "\"text\""}}}`
-- Pre-rendered template content: `{{{parametersRendered}}}`
-- Any value that should not be HTML-escaped
-
-**Example - Correct:**
-```handlebars
-branchName: {{{backstageVar "\"create-\" + parameters.name"}}}
-# Output: branchName: ${{ "create-" + parameters.name }}
-```
-
-**Example - Incorrect:**
-```handlebars
-branchName: {{backstageVar "\"create-\" + parameters.name"}}
-# Output: branchName: ${{ &quot;create-&quot; + parameters.name }}  ❌
-```
-
-**Use double-braces for:**
-- Simple property access: `{{config.gitops.ordersRepo.owner}}`
-- XRD fields: `{{xrd.spec.group}}`
-- Values without special characters
-
-### 3. Test Your Templates
+### 1. Restart Backstage
 
 ```bash
-# Test with a specific XRD
-./scripts/xrd-transform.sh -t ./my-templates your-xrd.yaml
-
-# Use verbose mode to see errors
-./scripts/xrd-transform.sh -t ./my-templates -v your-xrd.yaml
+# Stop Backstage if running (Ctrl+C)
+# Start it again:
+yarn start
 ```
 
-### 4. Always Provide a Default
+The ingestor loads templates at startup, so you need to restart after making changes.
 
-Each template directory should have a `default.hbs` fallback:
+### 2. Find an XRD-Generated Template
 
+1. Go to **Create** in Backstage
+2. Look for templates with type `crossplane` tag
+3. Click one to see the form
+
+### 3. Check Your Customizations
+
+- Form fields changed? Check `parameters/` templates
+- Workflow steps different? Check `steps/` templates
+- Output messages changed? Check `output/` templates
+
+### 4. Test with CLI (Advanced)
+
+If you have the ingestor plugin workspace:
+
+```bash
+cd plugins/ingestor
+yarn run ingestor transform path/to/xrd.yaml
+# Review the generated template YAML
 ```
-templates/
-├── parameters/
-│   ├── default.hbs     # ← Always required
-│   ├── database.hbs
-│   └── storage.hbs
+
+## Available Helper Functions
+
+Use these in your templates:
+
+```handlebars
+{{!-- Text manipulation --}}
+{{slugify "My Database"}}          # → "my-database"
+{{trim "  text  "}}                # → "text"
+
+{{!-- XRD data extraction --}}
+{{extractTitle xrd}}               # Gets human-readable title
+{{getAnnotation xrd "key"}}        # Gets annotation value
+{{getLabel xrd "key"}}             # Gets label value
+
+{{!-- Conditionals --}}
+{{#if (eq xrd.spec.scope "Namespaced")}}...{{/if}}
+{{#if (includes xrd.spec.group "database")}}...{{/if}}
+
+{{!-- Arrays --}}
+{{#each properties}}{{name}}: {{type}}{{/each}}
+{{#each (split tags ",")}}{{this}}{{/each}}
+
+{{!-- Backstage variable preservation --}}
+{{{backstageVar "parameters.name"}}}  # ← Triple braces!
 ```
 
-## Debug Template
+## Understanding Workflows
 
-A special `debug` template is provided to inspect all available variables during transformation:
+### Default Workflow (Direct Apply)
 
-### Usage
+**Template:** `steps/default.hbs`
 
-1. **Add annotation to XRD:**
-   ```yaml
-   metadata:
-     annotations:
-       backstage.io/template: "debug"
-   ```
+**What it does:**
+1. User fills form → Backstage
+2. Backstage applies resource → Kubernetes
+3. Resource created immediately
 
-2. **Transform the XRD:**
-   ```bash
-   ./scripts/xrd-transform.sh your-xrd.yaml
-   ```
+**Use when:** You want direct, immediate resource creation.
 
-3. **Review output:**
-   The generated template will include an `output` section showing:
-   - All XRD metadata (name, labels, annotations)
-   - XRD spec (group, names, versions)
-   - Extraction metadata (cluster, source, timestamp)
-   - Helper function examples with actual output
-   - Extracted properties from schema
-   - Template configuration from annotations
-   - Usage guide with examples
+**Pros:** Fast, simple
+**Cons:** No review process
 
-### Example Output
+### GitOps Workflow (PR-Based)
+
+**Template:** `steps/gitops.hbs`
+
+**What it does:**
+1. User fills form → Backstage
+2. Backstage creates PR → catalog-orders repository
+3. Team reviews PR → Merge
+4. Flux sees PR → Deploys resource to cluster
+
+**Use when:** You want review, approval, and audit trail.
+
+**Pros:** Reviewed changes, git history, rollback capability
+**Cons:** Slower (requires PR approval)
+
+**Configuration required in** `app-config/ingestor.yaml`:
+```yaml
+ingestor:
+  crossplane:
+    xrds:
+      gitops:
+        owner: 'your-org'
+        repo: 'catalog-orders'
+        targetBranch: 'main'
+```
+
+## Resetting to Defaults
+
+Made changes you want to undo? Reset to the npm package defaults:
+
+```bash
+# Backup your current templates (optional)
+cp -r ingestor-templates ingestor-templates.backup
+
+# Reinitialize from npm package
+yarn ingestor:init --force
+
+# Review what changed
+git diff ingestor-templates/
+
+# Option 1: Keep npm defaults
+git add ingestor-templates/
+git commit -m "chore: reset ingestor templates to npm defaults"
+
+# Option 2: Restore your customizations
+mv ingestor-templates.backup ingestor-templates
+```
+
+## Troubleshooting
+
+### Templates Not Loading
+
+**Problem:** Changed templates but don't see changes in Backstage
+
+**Solution:** Restart Backstage (`yarn start`) - templates load at startup
+
+### YAML Errors in Generated Templates
+
+**Problem:** Backstage shows YAML parse errors
+
+**Solution:** Check your template indentation - YAML is whitespace-sensitive
+
+```handlebars
+# Correct (indented properly):
+    - title: My Field
+      type: string
+
+# Incorrect (no indentation):
+- title: My Field
+type: string
+```
+
+### Backstage Variables Not Working
+
+**Problem:** See `${{ &quot;parameters.name&quot; }}` instead of `${{ "parameters.name" }}`
+
+**Solution:** Use triple braces `{{{...}}}` for Backstage variables:
+
+```handlebars
+# Correct:
+title: {{{backstageVar "\"Create \" + parameters.name"}}}
+
+# Incorrect:
+title: {{backstageVar "\"Create \" + parameters.name"}}
+```
+
+### GitOps Workflow Fails
+
+**Problem:** Templates using GitOps workflow fail to generate
+
+**Solution:** Check `app-config/ingestor.yaml` has GitOps configuration:
 
 ```yaml
-spec:
-  output:
-    xrd_metadata:
-      name: databases.platform.io
-    xrd_spec:
-      group: platform.io
-      names:
-        kind: Database
-        plural: databases
-    helper_examples:
-      slugify: databases-platform-io
-      extractTitle: Database Template
-      getAnnotation_template: debug
-    extracted_properties:
-      count: 3
-      properties:
-        - name: engine
-          type: string
-          required: true
+ingestor:
+  crossplane:
+    xrds:
+      gitops:
+        owner: 'your-org'       # ← Required!
+        repo: 'catalog-orders'  # ← Required!
+        targetBranch: 'main'
 ```
 
-### Use Cases
+## Getting Help
 
-- **Template Development**: Understand what data is available
-- **Debugging**: Investigate why a template isn't working
-- **Learning**: See how helpers transform data
-- **Documentation**: Generate examples of available variables
+### Documentation
 
-## See Also
+- **Template Examples**: See templates in this directory for working examples
+- **App-Portal Docs**: `docs/crossplane-ingestor.md` for integration guide
+- **Ingestor Package Docs**: [Template Customization Guide](https://github.com/open-service-portal/ingestor/blob/main/docs/template-customization.md)
+- **Backstage Docs**: [Software Templates](https://backstage.io/docs/features/software-templates/)
 
-- [XRD Transform Examples](../docs/xrd-transform-examples.md) - Complete usage guide
-- [XRD Annotations Reference](../docs/xrd-annotations-reference.md) - All annotation options
-- [Architecture Documentation](../docs/architecture.md) - Technical details
-- [Backstage Template Documentation](https://backstage.io/docs/features/software-templates/) - Official docs
+### Debug Mode
+
+Use the debug template to see all available data:
+
+1. Edit an XRD to use debug template:
+   ```yaml
+   annotations:
+     backstage.io/template: "debug"
+   ```
+2. Transform it: `yarn run ingestor transform xrd.yaml`
+3. Review the output - shows all variables available
+
+### Common Questions
+
+**Q: Do I need to restart Backstage after every template change?**
+A: Yes - templates load at application startup.
+
+**Q: Can I have different templates for different XRDs?**
+A: Yes! XRDs choose their templates via annotations.
+
+**Q: What happens if I delete a template file?**
+A: The ingestor falls back to `default.hbs` in that directory.
+
+**Q: Can I create my own custom templates (not just edit defaults)?**
+A: Yes! Create new `.hbs` files and reference them in XRD annotations.
+
+**Q: Are these templates version controlled?**
+A: Yes - they're in git and shared with your team.
+
+## Best Practices
+
+1. **Start small** - Make one change, test it, commit it
+2. **Use git** - Track changes so you can roll back if needed
+3. **Test with real XRDs** - Don't just edit blindly, test the generated templates
+4. **Document your changes** - Add comments in templates explaining custom logic
+5. **Share with team** - Template changes affect everyone, communicate changes
+
+## Example Workflow
+
+Here's a typical template customization workflow:
+
+```bash
+# 1. Edit templates
+vim ingestor-templates/backstage/default.hbs
+
+# 2. Restart Backstage to load changes
+yarn start
+
+# 3. Test in Backstage UI
+# → Go to Create → Find XRD template → Check form
+
+# 4. Iterate if needed
+vim ingestor-templates/parameters/default.hbs
+# Restart and test again...
+
+# 5. Commit when satisfied
+git add ingestor-templates/
+git commit -m "feat: add organization branding to XRD templates"
+git push origin feature/custom-templates
+
+# 6. Create PR for team review
+gh pr create --title "feat: customize XRD templates"
+```
+
+---
+
+**Happy templating! 🎨**
+
+Your customizations help make infrastructure provisioning easier and more intuitive for your team.
