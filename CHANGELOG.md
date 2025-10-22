@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/open-service-portal/ingestor/compare/v2.1.0...v2.1.1) (2025-10-22)
+
+
+### Bug Fixes
+
+* auto-detect dev vs production environment in bin scripts ([#26](https://github.com/open-service-portal/ingestor/issues/26)) ([b592fdc](https://github.com/open-service-portal/ingestor/commit/b592fdc646350cf5443a29eb581bd24bb15d23f7))
+
 # [2.1.0](https://github.com/open-service-portal/ingestor/compare/v2.0.0...v2.1.0) (2025-10-21)
 
 
