@@ -30,7 +30,8 @@
   },
   "scripts": {
     "start": "backstage-cli package start",
-    "build": "backstage-cli package build",
+    "build": "yarn build:plugin && yarn build:cli",
+    "build:plugin": "backstage-cli package build",
     "build:cli": "tsc --project tsconfig.cli.json",
     "lint": "backstage-cli package lint",
     "test": "backstage-cli package test --watchAll=false",
