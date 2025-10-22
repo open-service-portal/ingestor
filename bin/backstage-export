@@ -14,21 +14,19 @@ const rootDir = path.join(__dirname, '..');
 const srcFile = path.join(rootDir, 'src/backstage-export/cli/backstage-export-cli.ts');
 const distFile = path.join(rootDir, 'dist/backstage-export/cli/backstage-export-cli.js');
 
-// Check if we're in development (src/ exists) or production (only dist/ exists)
-const isDevelopment = fs.existsSync(srcFile);
-
-if (isDevelopment) {
-  // Development: Use ts-node
+// Prefer compiled version if it exists (faster, no ts-node issues)
+if (fs.existsSync(distFile)) {
+  // console.error('Using compiled version:', distFile);
+  require(distFile);
+} else if (fs.existsSync(srcFile)) {
+  // Fall back to ts-node in development
+  console.error('Warning: Using ts-node (slow). Consider running "yarn build"');
   require('ts-node').register({
     project: path.join(rootDir, 'tsconfig.cli.json')
   });
   require(srcFile);
 } else {
-  // Production: Use compiled JavaScript
-  if (!fs.existsSync(distFile)) {
-    console.error('Error: Neither source nor compiled files found.');
-    console.error('Please run "yarn build" first.');
-    process.exit(1);
-  }
-  require(distFile);
+  console.error('Error: Neither source nor compiled files found.');
+  console.error('Please run "yarn build" first.');
+  process.exit(1);
 }
