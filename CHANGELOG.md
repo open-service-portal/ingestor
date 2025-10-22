@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/open-service-portal/ingestor/compare/v2.2.1...v2.3.0) (2025-10-22)
+
+
+### Features
+
+* show exported files during export operation ([#31](https://github.com/open-service-portal/ingestor/issues/31)) ([156d63e](https://github.com/open-service-portal/ingestor/commit/156d63e2ce38934984146a6d9fbc0024906713e3))
+
 ## [2.2.1](https://github.com/open-service-portal/ingestor/compare/v2.2.0...v2.2.1) (2025-10-22)
 
 
