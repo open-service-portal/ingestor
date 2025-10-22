@@ -285,6 +285,140 @@ ingestor:
         targetBranch: 'main'
 ```
 
+## Updating Templates from Plugin
+
+### When to Update
+
+You should update your templates when:
+1. **Ingestor plugin is upgraded** - New version may have improved templates
+2. **Bug fixes in templates** - Fixes for known issues
+3. **New features available** - New template capabilities or helpers
+4. **Template improvements** - Better defaults or examples
+
+### How to Update
+
+#### Option 1: Selective Update (Recommended)
+
+Update specific templates while keeping your customizations:
+
+```bash
+# 1. Generate fresh templates to a temporary directory
+yarn ingestor:init -o /tmp/new-templates
+
+# 2. Compare with your current templates
+diff -r ingestor-templates/ /tmp/new-templates/
+
+# 3. Manually merge improvements you want
+# Example: Update parameters/default.hbs if it has improvements
+cp /tmp/new-templates/parameters/default.hbs ingestor-templates/parameters/default.hbs
+
+# 4. Re-apply your customizations
+vim ingestor-templates/parameters/default.hbs
+# Add back your custom validation rules, etc.
+
+# 5. Test and commit
+yarn start  # Test in Backstage
+git add ingestor-templates/
+git commit -m "chore: update parameter templates from plugin v2.2.0"
+```
+
+**Pros**: Keep your customizations, get improvements
+**Cons**: Manual work to merge changes
+
+#### Option 2: Full Reset + Reapply Customizations
+
+Reset completely and reapply customizations from git history:
+
+```bash
+# 1. Save your current customizations
+git diff HEAD~5 ingestor-templates/ > my-customizations.patch
+
+# 2. Reset to latest plugin defaults
+yarn ingestor:init --force
+
+# 3. Review new defaults
+git diff ingestor-templates/
+
+# 4. Reapply your customizations
+patch -p1 < my-customizations.patch
+# Or manually reapply from git history
+
+# 5. Test and commit
+yarn start
+git add ingestor-templates/
+git commit -m "chore: update to plugin v2.2.0 templates with customizations"
+```
+
+**Pros**: Get all improvements
+**Cons**: Need to carefully reapply customizations
+
+#### Option 3: Use Default Templates (No Customization)
+
+If you haven't customized templates, just remove the templateDir config:
+
+```yaml
+# app-config/ingestor.yaml
+ingestor:
+  crossplane:
+    xrds:
+      # Comment out or remove:
+      # templateDir: './ingestor-templates'
+```
+
+**Pros**: Always use latest templates from plugin
+**Cons**: No customization possible
+
+### Checking for Template Updates
+
+Compare your templates with the plugin's latest:
+
+```bash
+# 1. Check which plugin version you have
+yarn list --pattern @open-service-portal/backstage-plugin-ingestor
+
+# 2. Check plugin's template version in package
+ls -la node_modules/@open-service-portal/backstage-plugin-ingestor/templates/
+
+# 3. Generate fresh templates to compare
+yarn ingestor:init -o /tmp/plugin-templates
+
+# 4. Compare files
+diff -r ingestor-templates/ /tmp/plugin-templates/
+```
+
+### After Updating Templates
+
+1. **Restart Backstage** - Templates load at startup
+   ```bash
+   # Stop and restart:
+   yarn start
+   ```
+
+2. **Test XRD Generation** - Verify templates still work
+   ```bash
+   # Find an XRD-generated template in Backstage
+   # Go to Create → Test the form
+   ```
+
+3. **Check for Errors** - Look for YAML parse errors or missing fields
+
+4. **Document Changes** - Note what was updated in commit message
+   ```bash
+   git commit -m "chore: update templates from plugin v2.2.0
+
+   - Updated parameters/default.hbs with improved validation
+   - Added new helper functions from plugin
+   - Kept custom branding in backstage/default.hbs"
+   ```
+
+### Version Compatibility
+
+Templates are generally **backward compatible** between minor versions:
+- `2.1.x` → `2.2.x` - Safe to update
+- `2.x` → `3.x` - Check CHANGELOG for breaking changes
+
+Always review the [plugin CHANGELOG](https://github.com/open-service-portal/ingestor/blob/main/CHANGELOG.md) before updating.
+
 ## Resetting to Defaults
 
 Made changes you want to undo? Reset to the npm package defaults:
