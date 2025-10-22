@@ -1,3 +1,10 @@
+## [2.3.1](https://github.com/open-service-portal/ingestor/compare/v2.3.0...v2.3.1) (2025-10-22)
+
+
+### Bug Fixes
+
+* resolve templateDir relative paths and standardize config ([#32](https://github.com/open-service-portal/ingestor/issues/32)) ([2c67b68](https://github.com/open-service-portal/ingestor/commit/2c67b68abd8df3c9474f1433515bb69fd5423384)), closes [#XX](https://github.com/open-service-portal/ingestor/issues/XX)
+
 # [2.3.0](https://github.com/open-service-portal/ingestor/compare/v2.2.1...v2.3.0) (2025-10-22)
 
 
