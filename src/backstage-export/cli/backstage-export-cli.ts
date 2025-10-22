@@ -142,11 +142,14 @@ async function exportEntities(entities: Entity[], options: ExportOptions): Promi
           : JSON.stringify(entity, null, 2);
 
         fs.writeFileSync(filepath, content);
+        const relativePath = path.relative(outputDir, filepath);
+        console.log(`  ✓ ${relativePath}`);
+
         manifestEntries.push({
           kind: entity.kind,
           name: entity.metadata.name,
           namespace: entity.metadata.namespace,
-          file: path.relative(outputDir, filepath),
+          file: relativePath,
         });
       }
     }
@@ -160,6 +163,8 @@ async function exportEntities(entities: Entity[], options: ExportOptions): Promi
         : JSON.stringify(entity, null, 2);
 
       fs.writeFileSync(filepath, content);
+      console.log(`  ✓ ${filename}`);
+
       manifestEntries.push({
         kind: entity.kind,
         name: entity.metadata.name,
