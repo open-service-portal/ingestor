@@ -12,10 +12,8 @@ export interface IngestorConfig {
     tags?: string[];
   };
   filters?: ResourceFilter[];
-  transform?: {
-    templateDir?: string;
-    useXRDTransform?: boolean;
-  };
+  // Note: templateDir is configured at ingestor.crossplane.xrds.templateDir
+  // (used by both CLI and Backstage plugin runtime)
 }
 
 export interface KubernetesClusterConfig {

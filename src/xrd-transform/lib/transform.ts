@@ -43,6 +43,10 @@ export class XRDTransformer {
     this.helpers = createHelpers();
     this.handlebars = Handlebars.create();
 
+    // Debug: Log template directory
+    console.log(`[XRDTransformer] Template directory: ${this.templateDir}`);
+    console.log(`[XRDTransformer] Template directory exists: ${fs.existsSync(this.templateDir)}`);
+
     // Register helpers with Handlebars
     this.registerHelpers();
   }
