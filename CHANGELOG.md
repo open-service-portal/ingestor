@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/open-service-portal/ingestor/compare/v2.1.1...v2.2.0) (2025-10-22)
+
+
+### Features
+
+* add version label support to Backstage template generation ([#28](https://github.com/open-service-portal/ingestor/issues/28)) ([39b63b3](https://github.com/open-service-portal/ingestor/commit/39b63b37358d8cf299d6c5473279c4e2998715f9)), closes [#XX](https://github.com/open-service-portal/ingestor/issues/XX)
+
 ## [2.1.1](https://github.com/open-service-portal/ingestor/compare/v2.1.0...v2.1.1) (2025-10-22)
 
 
