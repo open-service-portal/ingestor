@@ -36,24 +36,53 @@ NC='\033[0m' # No Color
 # Get the directory where this script is located (plugin scripts directory)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+echo -e "${GREEN}Plugin Dir: ${PLUGIN_DIR}${NC}" >&2
 
 # Auto-detect API token from Backstage config if not provided
 if [ -z "${BACKSTAGE_TOKEN:-}" ]; then
-    # Try to find token from local config files
-    WORKSPACE_DIR="$(cd "${PLUGIN_DIR}/../../.." && pwd)"
-    for config in "$WORKSPACE_DIR"/app-config.*.local.yaml; do
-        if [ -f "$config" ]; then
-            TOKEN=$(grep -A3 "type: static" "$config" 2>/dev/null | grep "token:" | awk -F': ' '{print $2}' | head -1)
-            if [ -n "$TOKEN" ]; then
-                export BACKSTAGE_TOKEN="$TOKEN"
-                echo -e "${GREEN}✓ Auto-detected API token from $(basename "$config")${NC}" >&2
-                break
-            fi
-        fi
-    done
+    # Detect app-portal location relative to plugin directory
+    # Case 1: portal-workspace/ingestor (standalone)
+    #   -> Look for portal-workspace/app-portal/
+    # Case 2: app-portal/plugins/ingestor (nested)
+    #   -> Look for app-portal/
 
-    if [ -z "${BACKSTAGE_TOKEN:-}" ]; then
-        echo -e "${YELLOW}Warning: No API token found. Set BACKSTAGE_TOKEN or use --token flag${NC}" >&2
+    APP_PORTAL_DIR=""
+
+    # Check if we're in portal-workspace/ingestor layout
+    if [ -d "${PLUGIN_DIR}/../app-portal" ]; then
+        APP_PORTAL_DIR="$(cd "${PLUGIN_DIR}/../app-portal" && pwd)"
+        echo -e "${GREEN}Detected layout: portal-workspace/ingestor${NC}" >&2
+    # Check if we're in app-portal/plugins/ingestor layout
+    elif [ -d "${PLUGIN_DIR}/../.." ] && [ -f "${PLUGIN_DIR}/../../package.json" ]; then
+        # Verify it's actually app-portal by checking package.json
+        if grep -q "@backstage/create-app" "${PLUGIN_DIR}/../../package.json" 2>/dev/null; then
+            APP_PORTAL_DIR="$(cd "${PLUGIN_DIR}/../.." && pwd)"
+            echo -e "${GREEN}Detected layout: app-portal/plugins/ingestor${NC}" >&2
+        fi
+    fi
+
+    if [ -z "$APP_PORTAL_DIR" ]; then
+        echo -e "${YELLOW}Warning: Could not detect app-portal directory${NC}" >&2
+        echo -e "${YELLOW}Set BACKSTAGE_TOKEN or use --token flag${NC}" >&2
+    else
+        echo -e "${GREEN}App-portal: ${APP_PORTAL_DIR}${NC}" >&2
+
+        # Look for API token in app-config.*.local.yaml files
+        for config in "$APP_PORTAL_DIR"/app-config.*.local.yaml; do
+            if [ -f "$config" ]; then
+                TOKEN=$(grep -A3 "type: static" "$config" 2>/dev/null | grep "token:" | awk -F': ' '{print $2}' | head -1)
+                if [ -n "$TOKEN" ]; then
+                    export BACKSTAGE_TOKEN="$TOKEN"
+                    echo -e "${GREEN}✓ Auto-detected API token from $(basename "$config")${NC}" >&2
+                    break
+                fi
+            fi
+        done
+
+        if [ -z "${BACKSTAGE_TOKEN:-}" ]; then
+            echo -e "${YELLOW}Warning: No API token found in ${APP_PORTAL_DIR}${NC}" >&2
+            echo -e "${YELLOW}Set BACKSTAGE_TOKEN or use --token flag${NC}" >&2
+        fi
     fi
 fi
 

@@ -24,6 +24,8 @@ metadata:
   name: whoamiapps-openportal-dev
   title: Who Am I App
   description: Create and manage WhoAmIApp resources
+  labels:
+    openportal.dev/version: dev
   tags:
     - crossplane
     - openportal-dev
