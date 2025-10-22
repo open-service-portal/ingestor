@@ -1,3 +1,10 @@
+## [2.2.1](https://github.com/open-service-portal/ingestor/compare/v2.2.0...v2.2.1) (2025-10-22)
+
+
+### Bug Fixes
+
+* improve CLI performance and config path resolution ([#30](https://github.com/open-service-portal/ingestor/issues/30)) ([548ecfb](https://github.com/open-service-portal/ingestor/commit/548ecfb683abe5d217604c2016f5e888702d45ce))
+
 # [2.2.0](https://github.com/open-service-portal/ingestor/compare/v2.1.1...v2.2.0) (2025-10-22)
 
 
