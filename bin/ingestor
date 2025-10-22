@@ -2,11 +2,33 @@
 
 /**
  * Ingestor CLI entry point
- * This script uses ts-node to run the xrd-transform CLI
- * (The old ingestor CLI was removed during refactoring)
+ * Auto-detects development vs production environment:
+ * - Development: Uses ts-node to run TypeScript directly
+ * - Production: Uses compiled JavaScript from dist/
  */
 
-require('ts-node').register({
-  project: require('path').join(__dirname, '..', 'tsconfig.cli.json')
-});
-require('../src/xrd-transform/cli/xrd-transform-cli');
+const path = require('path');
+const fs = require('fs');
+
+const rootDir = path.join(__dirname, '..');
+const srcFile = path.join(rootDir, 'src/xrd-transform/cli/xrd-transform-cli.ts');
+const distFile = path.join(rootDir, 'dist/xrd-transform/cli/xrd-transform-cli.js');
+
+// Check if we're in development (src/ exists) or production (only dist/ exists)
+const isDevelopment = fs.existsSync(srcFile);
+
+if (isDevelopment) {
+  // Development: Use ts-node
+  require('ts-node').register({
+    project: path.join(rootDir, 'tsconfig.cli.json')
+  });
+  require(srcFile);
+} else {
+  // Production: Use compiled JavaScript
+  if (!fs.existsSync(distFile)) {
+    console.error('Error: Neither source nor compiled files found.');
+    console.error('Please run "yarn build" first.');
+    process.exit(1);
+  }
+  require(distFile);
+}
