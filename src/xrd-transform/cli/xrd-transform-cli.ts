@@ -53,14 +53,24 @@ function getCurrentKubectlContext(): string | undefined {
  * 2. app-config.yaml + includes (monolithic config)
  *
  * If app-config/ingestor.yaml exists, don't load app-config.yaml
+ *
+ * Returns both config and the base directory where it was found
  */
-function loadIngestorConfig(configPath?: string): any {
+function loadIngestorConfig(configPath?: string): { config: any; configDir: string } {
   // If explicit config path provided, use it
   if (configPath) {
     if (fs.existsSync(configPath)) {
       try {
         const configContent = fs.readFileSync(configPath, 'utf-8');
-        return yaml.load(configContent);
+        const config = yaml.load(configContent);
+        let configDir = path.dirname(path.resolve(configPath));
+
+        // If this is a modular config in app-config/, resolve templateDir from parent
+        if (configDir.endsWith('app-config')) {
+          configDir = path.dirname(configDir);
+        }
+
+        return { config, configDir };
       } catch (error) {
         log(`Warning: Failed to load config from ${configPath}: ${error}`, 'yellow');
       }
@@ -84,7 +94,10 @@ function loadIngestorConfig(configPath?: string): any {
       try {
         const configContent = fs.readFileSync(modularConfigPath, 'utf-8');
         const config = yaml.load(configContent);
-        return config;
+        // For modular config, resolve relative paths from the parent directory (app-portal)
+        // not from app-config/ itself
+        const configDir = baseDir;
+        return { config, configDir };
       } catch (error) {
         log(`Warning: Found config at ${modularConfigPath} but failed to load: ${error}`, 'yellow');
       }
@@ -97,7 +110,7 @@ function loadIngestorConfig(configPath?: string): any {
     if (fs.existsSync(monolithicConfigPath)) {
       try {
         const config = loadAppConfig(monolithicConfigPath, baseDir);
-        return config;
+        return { config, configDir: baseDir };
       } catch (error) {
         log(`Warning: Found config at ${monolithicConfigPath} but failed to load: ${error}`, 'yellow');
       }
@@ -105,7 +118,7 @@ function loadIngestorConfig(configPath?: string): any {
   }
 
   // Return empty config if not found
-  return {};
+  return { config: {}, configDir: process.cwd() };
 }
 
 /**
@@ -300,7 +313,7 @@ program
   .action(async (input, options) => {
     try {
       // Load configuration for template directory and gitops settings
-      const config = loadIngestorConfig(options.config);
+      const { config, configDir } = loadIngestorConfig(options.config);
       const configTemplateDir = config?.ingestor?.crossplane?.xrds?.templateDir;
 
       // Priority: CLI flag > config > built-in default
@@ -309,8 +322,8 @@ program
         // CLI flag takes highest priority
         templateDir = path.resolve(options.templatePath);
       } else if (configTemplateDir) {
-        // Use config setting (resolve relative to cwd)
-        templateDir = path.resolve(process.cwd(), configTemplateDir);
+        // Use config setting (resolve relative to config directory, not cwd)
+        templateDir = path.resolve(configDir, configTemplateDir);
       } else {
         // Fall back to built-in templates
         templateDir = DEFAULT_TEMPLATE_DIR;

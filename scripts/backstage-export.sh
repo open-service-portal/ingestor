@@ -33,58 +33,12 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Save the user's current working directory
+USER_CWD="$(pwd)"
+
 # Get the directory where this script is located (plugin scripts directory)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-echo -e "${GREEN}Plugin Dir: ${PLUGIN_DIR}${NC}" >&2
-
-# Auto-detect API token from Backstage config if not provided
-if [ -z "${BACKSTAGE_TOKEN:-}" ]; then
-    # Detect app-portal location relative to plugin directory
-    # Case 1: portal-workspace/ingestor (standalone)
-    #   -> Look for portal-workspace/app-portal/
-    # Case 2: app-portal/plugins/ingestor (nested)
-    #   -> Look for app-portal/
-
-    APP_PORTAL_DIR=""
-
-    # Check if we're in portal-workspace/ingestor layout
-    if [ -d "${PLUGIN_DIR}/../app-portal" ]; then
-        APP_PORTAL_DIR="$(cd "${PLUGIN_DIR}/../app-portal" && pwd)"
-        echo -e "${GREEN}Detected layout: portal-workspace/ingestor${NC}" >&2
-    # Check if we're in app-portal/plugins/ingestor layout
-    elif [ -d "${PLUGIN_DIR}/../.." ] && [ -f "${PLUGIN_DIR}/../../package.json" ]; then
-        # Verify it's actually app-portal by checking package.json
-        if grep -q "@backstage/create-app" "${PLUGIN_DIR}/../../package.json" 2>/dev/null; then
-            APP_PORTAL_DIR="$(cd "${PLUGIN_DIR}/../.." && pwd)"
-            echo -e "${GREEN}Detected layout: app-portal/plugins/ingestor${NC}" >&2
-        fi
-    fi
-
-    if [ -z "$APP_PORTAL_DIR" ]; then
-        echo -e "${YELLOW}Warning: Could not detect app-portal directory${NC}" >&2
-        echo -e "${YELLOW}Set BACKSTAGE_TOKEN or use --token flag${NC}" >&2
-    else
-        echo -e "${GREEN}App-portal: ${APP_PORTAL_DIR}${NC}" >&2
-
-        # Look for API token in app-config.*.local.yaml files
-        for config in "$APP_PORTAL_DIR"/app-config.*.local.yaml; do
-            if [ -f "$config" ]; then
-                TOKEN=$(grep -A3 "type: static" "$config" 2>/dev/null | grep "token:" | awk -F': ' '{print $2}' | head -1)
-                if [ -n "$TOKEN" ]; then
-                    export BACKSTAGE_TOKEN="$TOKEN"
-                    echo -e "${GREEN}✓ Auto-detected API token from $(basename "$config")${NC}" >&2
-                    break
-                fi
-            fi
-        done
-
-        if [ -z "${BACKSTAGE_TOKEN:-}" ]; then
-            echo -e "${YELLOW}Warning: No API token found in ${APP_PORTAL_DIR}${NC}" >&2
-            echo -e "${YELLOW}Set BACKSTAGE_TOKEN or use --token flag${NC}" >&2
-        fi
-    fi
-fi
 
 # Default values
 DEFAULT_URL="http://localhost:7007"
@@ -95,6 +49,7 @@ ARGS=()
 HAS_URL=false
 HAS_OUTPUT=false
 HAS_TOKEN=false
+PREV_ARG=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -108,7 +63,7 @@ Options:
   -o, --output <dir>     Output directory (default: exported)
   -k, --kind <kinds>     Entity kinds (comma-separated)
   -u, --url <url>        Backstage URL (default: http://localhost:7007)
-  -t, --token <token>    API token (or auto-detected from config)
+  -t, --token <token>    API token for authentication
   --namespace <ns>       Namespace filter
   --name <pattern>       Name pattern (supports wildcards)
   --owner <owner>        Owner filter
@@ -133,11 +88,11 @@ Examples:
   # List all APIs
   backstage-export.sh --list --kind API
 
-  # Export from remote Backstage
+  # Export from remote Backstage with token
   backstage-export.sh --url https://backstage.example.com --token $TOKEN
 
 Environment Variables:
-  BACKSTAGE_TOKEN  API token for authentication (auto-detected if not set)
+  BACKSTAGE_TOKEN  API token for authentication
 
 For more information, see:
   docs/cli-export.md
@@ -154,7 +109,20 @@ EOF
             HAS_TOKEN=true
             ;;
     esac
-    ARGS+=("$1")
+
+    # Convert output path to absolute if it follows -o or --output
+    if [[ "$PREV_ARG" == "-o" ]] || [[ "$PREV_ARG" == "--output" ]]; then
+        # This is an output path argument, make it absolute if relative
+        if [[ ! "$1" =~ ^/ ]]; then
+            ARGS+=("${USER_CWD}/$1")
+        else
+            ARGS+=("$1")
+        fi
+    else
+        ARGS+=("$1")
+    fi
+
+    PREV_ARG="$1"
     shift
 done
 
@@ -164,13 +132,21 @@ if ! $HAS_URL; then
 fi
 
 if ! $HAS_OUTPUT; then
-    ARGS=("--output" "$DEFAULT_OUTPUT" "${ARGS[@]}")
+    # Use absolute path for default output
+    ARGS=("--output" "${USER_CWD}/$DEFAULT_OUTPUT" "${ARGS[@]}")
 fi
 
 if ! $HAS_TOKEN && [ -n "${BACKSTAGE_TOKEN:-}" ]; then
     ARGS=("--token" "$BACKSTAGE_TOKEN" "${ARGS[@]}")
 fi
 
-# Run the export CLI via bin script
+# Run the export CLI
+# Prefer compiled version (faster, avoids ts-node issues)
 cd "$PLUGIN_DIR"
-"${PLUGIN_DIR}/bin/backstage-export" "${ARGS[@]}"
+DIST_CLI="${PLUGIN_DIR}/dist/backstage-export/cli/backstage-export-cli.js"
+if [ -f "$DIST_CLI" ]; then
+    node "$DIST_CLI" "${ARGS[@]}"
+else
+    # Fall back to bin script (which may use ts-node)
+    "${PLUGIN_DIR}/bin/backstage-export" "${ARGS[@]}"
+fi
