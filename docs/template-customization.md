@@ -48,6 +48,12 @@ yarn ingestor:init
 
 This creates `./ingestor-templates/` with all default templates.
 
+**Note for Backstage Applications**:
+- The templates are **copied** to your app directory, not symlinked
+- This allows you to customize them independently from the npm package
+- You can track custom templates in git for version control and team collaboration
+- Use `yarn ingestor:init --force` to reset templates to npm package defaults
+
 ### 2. Configure Template Directory
 
 Add to `app-config/ingestor.yaml`:
@@ -108,6 +114,143 @@ This allows:
 - **Production**: Use configured templates from `app-config.yaml`
 - **Development**: Test experimental templates with CLI flag
 - **Fallback**: Automatic use of built-in templates if none configured
+
+## Template Workflows
+
+### Workflow 1: Using Built-in Templates (Default)
+
+**Best for**: Getting started, using standard templates
+
+```yaml
+# app-config/ingestor.yaml
+ingestor:
+  crossplane:
+    xrds:
+      enabled: true
+      # No templateDir specified - uses built-in templates
+      gitops:
+        owner: 'your-org'
+        repo: 'catalog-orders'
+```
+
+**Pros**:
+- ✅ Zero setup - works immediately
+- ✅ Automatic updates when upgrading npm package
+- ✅ No files to maintain
+
+**Cons**:
+- ❌ Cannot customize templates
+- ❌ Templates update with npm package (might break customizations)
+
+### Workflow 2: Tracked Custom Templates (Recommended)
+
+**Best for**: Teams needing customization, version control
+
+```bash
+# 1. Initialize templates
+yarn ingestor:init
+
+# 2. Track in git
+git add ingestor-templates/
+git commit -m "feat: initialize custom ingestor templates"
+
+# 3. Configure
+# app-config/ingestor.yaml
+ingestor:
+  crossplane:
+    xrds:
+      templateDir: './ingestor-templates'
+
+# 4. Customize and commit
+vim ingestor-templates/backstage/default.hbs
+git add ingestor-templates/
+git commit -m "feat: add organization branding to templates"
+```
+
+**Pros**:
+- ✅ Full customization control
+- ✅ Version controlled with application
+- ✅ Team collaboration via PR reviews
+- ✅ Independent from npm package updates
+- ✅ Can reset to defaults anytime
+
+**Cons**:
+- ❌ Manual updates when npm package templates improve
+- ❌ Need to maintain template files
+
+**This is the recommended workflow for** `app-portal` **and similar consuming applications.**
+
+### Workflow 3: Gitignored Custom Templates
+
+**Best for**: Personal customization, local development
+
+```bash
+# 1. Initialize templates
+yarn ingestor:init
+
+# 2. Add to .gitignore
+echo "ingestor-templates/" >> .gitignore
+
+# 3. Configure
+# app-config.local.yaml (gitignored)
+ingestor:
+  crossplane:
+    xrds:
+      templateDir: './ingestor-templates'
+```
+
+**Pros**:
+- ✅ Personal customization without affecting team
+- ✅ No git noise from template experiments
+
+**Cons**:
+- ❌ Not shared with team
+- ❌ Lost when cloning fresh
+- ❌ Each developer maintains their own
+
+### Workflow 4: CLI Testing Only
+
+**Best for**: Experimenting with templates before committing
+
+```bash
+# Test with experimental templates
+npx ingestor transform \
+  --template-path ./experimental-templates \
+  path/to/xrd.yaml
+
+# Production still uses configured templates
+yarn start  # Uses templateDir from config
+```
+
+**Pros**:
+- ✅ Safe experimentation
+- ✅ No risk to production templates
+- ✅ Easy to test multiple template variants
+
+**Cons**:
+- ❌ Only works with CLI, not Backstage runtime
+
+### Resetting to Built-in Templates
+
+If you're using tracked custom templates (Workflow 2) and want to reset:
+
+```bash
+# Backup current templates
+cp -r ingestor-templates ingestor-templates.backup
+
+# Reinitialize from npm package
+yarn ingestor:init --force
+
+# Review changes
+git diff ingestor-templates/
+
+# Option 1: Keep npm package defaults
+git add ingestor-templates/
+git commit -m "chore: reset templates to npm package defaults"
+
+# Option 2: Restore your customizations
+mv ingestor-templates.backup ingestor-templates
+```
 
 ## Template Contexts
 
